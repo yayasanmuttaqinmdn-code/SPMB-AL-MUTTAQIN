@@ -1495,6 +1495,15 @@ export function extractSpreadsheetIdShared(input: string): string {
   return trimmed;
 }
 
+export const PRIMARY_SPREADSHEET_CONFIG = {
+  spreadsheetId: '1Vk2NjqvmphkZhV5gahpkTWVaYdLaJ1CneyyNBZvs724',
+  spreadsheetTitle: 'SPMB 2027',
+  spreadsheetUrl:
+    'https://docs.google.com/spreadsheets/d/1Vk2NjqvmphkZhV5gahpkTWVaYdLaJ1CneyyNBZvs724',
+  appsScriptUrl:
+    'https://script.google.com/macros/s/AKfycbxSscKOBNKh5TTdBUxSY7ohujK8wP5h3GT4UfzGC3sBAGyyLxqvYIeFQ2GZcwNngdoI/exec',
+} as const;
+
 export function createEmptyUnitTarget(): UnitSheetsTarget {
   return {
     spreadsheetId: '',
@@ -1512,6 +1521,24 @@ export function createEmptySheetsConfig(defaultMode: SheetsSyncMode = 'unified')
     spreadsheetUrl: '',
     autoSyncEnabled: true,
     appsScriptUrl: '',
+    lastSyncedAt: null,
+    unitTargets: {
+      RA_TK: createEmptyUnitTarget(),
+      SDIT: createEmptyUnitTarget(),
+      SMP: createEmptyUnitTarget(),
+      SMA: createEmptyUnitTarget(),
+    },
+  };
+}
+
+export function createPrimarySheetsConfig(): SheetsPublicConfig {
+  return {
+    syncMode: 'unified',
+    spreadsheetId: PRIMARY_SPREADSHEET_CONFIG.spreadsheetId,
+    spreadsheetTitle: PRIMARY_SPREADSHEET_CONFIG.spreadsheetTitle,
+    spreadsheetUrl: PRIMARY_SPREADSHEET_CONFIG.spreadsheetUrl,
+    autoSyncEnabled: true,
+    appsScriptUrl: PRIMARY_SPREADSHEET_CONFIG.appsScriptUrl,
     lastSyncedAt: null,
     unitTargets: {
       RA_TK: createEmptyUnitTarget(),

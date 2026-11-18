@@ -1237,7 +1237,14 @@ export const SheetsSyncView: React.FC<SheetsSyncViewProps> = ({
               </div>
             </div>
 
-            {!isGlobalSynced && (
+            {isGlobalSynced ? (
+              <div className="p-3 rounded-xl bg-[#14532D]/5 border border-[#14532D]/20 text-xs text-[#111815] leading-relaxed">
+                <strong>Spreadsheet Utama Terkunci Global ({sheetsConfig.spreadsheetTitle || 'SPMB 2027'}):</strong>{' '}
+                Semua perangkat (HP, tablet, laptop) yang membuka link Vercel ini otomatis
+                terhubung ke Google Spreadsheet utama yang sama dan sinkron real-time tanpa perlu
+                pengaturan ulang per perangkat.
+              </div>
+            ) : (
               <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 leading-relaxed">
                 <strong>Mengapa HP/laptop lain datanya masih berbeda?</strong>{' '}
                 Menyimpan URL Webhook di form atas hanya tersimpan di browser ini. Agar{' '}
@@ -1249,8 +1256,8 @@ export const SheetsSyncView: React.FC<SheetsSyncViewProps> = ({
             )}
 
             <p className="text-xs text-[#4E5651] leading-relaxed">
-              Isi variabel berikut di <strong>Vercel (Settings → Environment Variables)</strong>,
-              lalu klik <strong>Deployments → Redeploy</strong>:
+              Referensi Environment Variables <strong>Vercel (Settings → Environment Variables)</strong>{' '}
+              jika suatu saat panitia ingin mengganti target Spreadsheet utama tanpa mengubah kode:
             </p>
             <pre className="p-3 rounded-xl bg-[#F6F7F6] border border-[#E2E5E2] text-[11px] font-mono text-[#111815] overflow-x-auto leading-relaxed">
               {vercelEnvSnippet}

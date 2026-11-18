@@ -22,7 +22,7 @@ import type {
 import {
   computeUnitStats,
   countConfiguredUnitTargets,
-  createEmptySheetsConfig,
+  createPrimarySheetsConfig,
   DEFAULT_FORM_CONFIG,
   INSTITUTION_NAME,
   normalizeFormSchemaConfig,
@@ -77,7 +77,7 @@ interface PendingConfirmation {
   action: () => Promise<void>;
 }
 
-const EMPTY_CONFIG: SheetsPublicConfig = createEmptySheetsConfig('unified');
+const EMPTY_CONFIG: SheetsPublicConfig = createPrimarySheetsConfig();
 
 function dedupeRegistrations(list: RegistrationRecord[]): RegistrationRecord[] {
   const seen = new Set<string>();

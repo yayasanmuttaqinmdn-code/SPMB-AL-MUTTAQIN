@@ -15,15 +15,19 @@ function extractSpreadsheetId(raw: string): string {
   return match ? match[1] : trimmed;
 }
 
+const DEFAULT_APPS_SCRIPT_URL =
+  'https://script.google.com/macros/s/AKfycbxSscKOBNKh5TTdBUxSY7ohujK8wP5h3GT4UfzGC3sBAGyyLxqvYIeFQ2GZcwNngdoI/exec';
+const DEFAULT_SPREADSHEET_ID = '1Vk2NjqvmphkZhV5gahpkTWVaYdLaJ1CneyyNBZvs724';
+
 export default function handler(_req: VercelRequestLike, res: VercelResponseLike) {
   const appsScriptUrl = (
     process.env.VITE_APPS_SCRIPT_URL ||
     process.env.APPS_SCRIPT_URL ||
-    ''
+    DEFAULT_APPS_SCRIPT_URL
   ).trim();
-  const spreadsheetId = extractSpreadsheetId(
-    process.env.VITE_SPREADSHEET_ID || process.env.SPREADSHEET_ID || ''
-  );
+  const spreadsheetId =
+    extractSpreadsheetId(process.env.VITE_SPREADSHEET_ID || process.env.SPREADSHEET_ID || '') ||
+    DEFAULT_SPREADSHEET_ID;
 
   res.setHeader('Cache-Control', 'no-store, max-age=0');
   res.status(200).json({

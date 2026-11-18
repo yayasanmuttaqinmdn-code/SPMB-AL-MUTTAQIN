@@ -9,6 +9,7 @@ import type {
 import {
   computeStatsFromUnitCounts,
   createEmptySheetsConfig,
+  createPrimarySheetsConfig,
   DEFAULT_FORM_CONFIG,
   extractSpreadsheetIdShared,
   findRegistrationsByName,
@@ -20,6 +21,7 @@ import {
   normalizeSheetsConfig,
   parseCloudShareParams,
   parsePulledSpreadsheetData,
+  PRIMARY_SPREADSHEET_CONFIG,
   registrationToSheetRow,
   searchRegistrationsForStatus,
   SHEET_HEADERS,
@@ -363,11 +365,14 @@ function doPost(e) {
 }`;
 
 export function getEnvAppsScriptUrl(): string {
-  return (import.meta.env.VITE_APPS_SCRIPT_URL || '').trim();
+  return (import.meta.env.VITE_APPS_SCRIPT_URL || PRIMARY_SPREADSHEET_CONFIG.appsScriptUrl).trim();
 }
 
 export function getEnvSpreadsheetId(): string {
-  return extractSpreadsheetIdShared(import.meta.env.VITE_SPREADSHEET_ID || '');
+  return (
+    extractSpreadsheetIdShared(import.meta.env.VITE_SPREADSHEET_ID || '') ||
+    PRIMARY_SPREADSHEET_CONFIG.spreadsheetId
+  );
 }
 
 export function getEnvAdminPassword(): string {
@@ -377,23 +382,39 @@ export function getEnvAdminPassword(): string {
 export function loadLocalCloudSheetsConfig(): SheetsPublicConfig {
   const envUrl = getEnvAppsScriptUrl();
   const envSheetId = getEnvSpreadsheetId();
+  const primaryDefaults = createPrimarySheetsConfig();
   try {
     const raw = localStorage.getItem(LOCAL_SHEETS_CONFIG_KEY);
     if (raw) {
       const parsed = normalizeSheetsConfig(JSON.parse(raw) as Partial<SheetsPublicConfig>);
+      const effectiveSheetId = parsed.spreadsheetId || envSheetId;
       return normalizeSheetsConfig({
         ...parsed,
         appsScriptUrl: parsed.appsScriptUrl || envUrl,
-        spreadsheetId: parsed.spreadsheetId || envSheetId,
+        spreadsheetId: effectiveSheetId,
+        spreadsheetTitle:
+          parsed.spreadsheetTitle ||
+          (effectiveSheetId === PRIMARY_SPREADSHEET_CONFIG.spreadsheetId
+            ? PRIMARY_SPREADSHEET_CONFIG.spreadsheetTitle
+            : ''),
+        spreadsheetUrl:
+          parsed.spreadsheetUrl ||
+          (effectiveSheetId === PRIMARY_SPREADSHEET_CONFIG.spreadsheetId
+            ? PRIMARY_SPREADSHEET_CONFIG.spreadsheetUrl
+            : ''),
       });
     }
   } catch {
     // Ignore storage errors
   }
   return normalizeSheetsConfig({
-    ...createEmptySheetsConfig('unified'),
+    ...primaryDefaults,
     appsScriptUrl: envUrl,
     spreadsheetId: envSheetId,
+    spreadsheetTitle:
+      envSheetId === PRIMARY_SPREADSHEET_CONFIG.spreadsheetId
+        ? PRIMARY_SPREADSHEET_CONFIG.spreadsheetTitle
+        : '',
   });
 }
 

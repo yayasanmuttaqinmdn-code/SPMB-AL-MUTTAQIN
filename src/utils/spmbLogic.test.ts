@@ -12,6 +12,7 @@ import {
   computeUnitStats,
   countConfiguredUnitTargets,
   createEmptyRegistrationInput,
+  createPrimarySheetsConfig,
   DEFAULT_FORM_CONFIG,
   findOwnRegistration,
   findRegistrationsByName,
@@ -25,6 +26,7 @@ import {
   normalizeSheetsConfig,
   parseCloudShareParams,
   parsePulledSpreadsheetData,
+  PRIMARY_SPREADSHEET_CONFIG,
   registrationToSheetRow,
   resolveUnitWebhookDispatch,
   sanitizePublicSheetsConfig,
@@ -805,6 +807,15 @@ test('shareable cloud sync link validates Google Apps Script /exec URLs strictly
   });
 
   assert.equal(parseCloudShareParams('?cloud=https://evil.example.com/exec'), null);
+});
+
+test('PRIMARY_SPREADSHEET_CONFIG binds SPMB 2027 spreadsheet and Apps Script endpoint globally', () => {
+  const cfg = createPrimarySheetsConfig();
+  assert.equal(cfg.syncMode, 'unified');
+  assert.equal(cfg.spreadsheetId, '1Vk2NjqvmphkZhV5gahpkTWVaYdLaJ1CneyyNBZvs724');
+  assert.equal(cfg.spreadsheetTitle, 'SPMB 2027');
+  assert.equal(isValidAppsScriptExecUrl(cfg.appsScriptUrl), true);
+  assert.equal(cfg.appsScriptUrl, PRIMARY_SPREADSHEET_CONFIG.appsScriptUrl);
 });
 
 
