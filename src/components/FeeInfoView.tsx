@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { ArrowRight, Download, Search, Wallet } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { ArrowRight, Download, Wallet, X } from 'lucide-react';
 import type { FeeCategoryId, UnitId } from '../types/spmb.ts';
 import {
   FEE_ACADEMIC_YEAR,
@@ -18,7 +18,6 @@ interface FeeInfoViewProps {
 }
 
 type GenderColumnFilter = 'all' | 'putra' | 'putri';
-type CategoryFilter = 'ALL' | FeeCategoryId;
 
 function getCategoryLogoPath(category: FeeCategoryId): string {
   if (category === 'SMA') return getUnitLogoPath('SMA');
@@ -29,31 +28,19 @@ function getCategoryLogoPath(category: FeeCategoryId): string {
 }
 
 export const FeeInfoView: React.FC<FeeInfoViewProps> = ({ onRegisterForUnit }) => {
-  const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>('ALL');
+  const [activeModalCategory, setActiveModalCategory] = useState<FeeCategoryId | null>(null);
   const [genderFilter, setGenderFilter] = useState<GenderColumnFilter>('all');
-  const [searchTerm, setSearchTerm] = useState('');
 
-  const visibleSchedules = useMemo(() => {
-    const baseList =
-      selectedCategory === 'ALL'
-        ? FEE_CATEGORY_ORDER.map((id) => FEE_SCHEDULES[id])
-        : [FEE_SCHEDULES[selectedCategory]];
-
-    const cleanSearch = searchTerm.trim().toLowerCase();
-    if (!cleanSearch) return baseList;
-
-    return baseList
-      .map((group) => ({
-        ...group,
-        items: group.items.filter(
-          (item) =>
-            item.label.toLowerCase().includes(cleanSearch) ||
-            group.title.toLowerCase().includes(cleanSearch) ||
-            group.shortName.toLowerCase().includes(cleanSearch)
-        ),
-      }))
-      .filter((group) => group.items.length > 0);
-  }, [selectedCategory, searchTerm]);
+  useEffect(() => {
+    if (!activeModalCategory) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setActiveModalCategory(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeModalCategory]);
 
   const showPutra = genderFilter === 'all' || genderFilter === 'putra';
   const showPutri = genderFilter === 'all' || genderFilter === 'putri';
@@ -102,20 +89,20 @@ export const FeeInfoView: React.FC<FeeInfoViewProps> = ({ onRegisterForUnit }) =
             Ringkasan Total Biaya per Jenjang
           </h2>
           <span className="text-xs text-[#4E5651]">
-            Klik kartu jenjang untuk menyaring rincian tabel di bawah
+            Klik kotak jenjang di bawah untuk langsung menampilkan rincian biayanya
           </span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
           {FEE_CATEGORY_ORDER.map((id) => {
             const grp = FEE_SCHEDULES[id];
-            const isSelected = selectedCategory === id;
+            const isSelected = activeModalCategory === id;
             return (
               <button
                 key={id}
                 type="button"
-                onClick={() => setSelectedCategory((prev) => (prev === id ? 'ALL' : id))}
-                className={`text-left p-4 rounded-xl border transition-all flex flex-col justify-between gap-3 focus-visible:outline-2 focus-visible:outline-[#14532D] ${
+                onClick={() => setActiveModalCategory(id)}
+                className={`group text-left p-4 rounded-xl border transition-all flex flex-col justify-between gap-3 focus-visible:outline-2 focus-visible:outline-[#14532D] ${
                   isSelected
                     ? 'bg-[#F4F8F5] border-[#14532D] ring-1 ring-[#14532D]'
                     : 'bg-white border-[#E2E5E2] hover:border-[#14532D]/60'
@@ -129,14 +116,14 @@ export const FeeInfoView: React.FC<FeeInfoViewProps> = ({ onRegisterForUnit }) =
                       className="w-9 h-9 rounded-lg object-contain bg-white border border-[#E2E5E2] p-0.5 shrink-0"
                     />
                     <div className="min-w-0">
-                      <h3 className="font-display text-sm sm:text-base font-bold text-[#111815] truncate">
+                      <h3 className="font-display text-sm sm:text-base font-bold text-[#111815] group-hover:text-[#14532D] transition-colors truncate">
                         {grp.title}
                       </h3>
                       <p className="text-xs text-[#4E5651]">{grp.items.length} komponen biaya</p>
                     </div>
                   </div>
                   <span className="text-xs font-semibold text-[#14532D] whitespace-nowrap shrink-0">
-                    {isSelected ? 'Terpilih' : 'Detail'}
+                    Lihat Rincian
                   </span>
                 </div>
 
@@ -158,84 +145,10 @@ export const FeeInfoView: React.FC<FeeInfoViewProps> = ({ onRegisterForUnit }) =
             );
           })}
         </div>
-      </section>
-
-      {/* Filter Bar & Search */}
-      <section className="bg-white border border-[#E2E5E2] rounded-2xl p-4 sm:p-5 space-y-4">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-1.5" role="tablist" aria-label="Pilih jenjang biaya">
-            <button
-              type="button"
-              onClick={() => setSelectedCategory('ALL')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors whitespace-nowrap ${
-                selectedCategory === 'ALL'
-                  ? 'bg-[#14532D] text-white border-[#14532D]'
-                  : 'bg-white text-[#4E5651] border-[#D4D9D4] hover:border-[#14532D] hover:text-[#111815]'
-              }`}
-            >
-              Semua Jenjang
-            </button>
-            {FEE_CATEGORY_ORDER.map((id) => {
-              const active = selectedCategory === id;
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => setSelectedCategory(id)}
-                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors whitespace-nowrap ${
-                    active
-                      ? 'bg-[#14532D] text-white border-[#14532D]'
-                      : 'bg-white text-[#4E5651] border-[#D4D9D4] hover:border-[#14532D] hover:text-[#111815]'
-                  }`}
-                >
-                  {FEE_SCHEDULES[id].shortName}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
-            <div className="inline-flex items-center p-1 bg-[#F2F4F2] rounded-lg shrink-0">
-              {(
-                [
-                  { id: 'all', label: 'Putra & Putri' },
-                  { id: 'putra', label: 'Putra' },
-                  { id: 'putri', label: 'Putri' },
-                ] as const
-              ).map((opt) => (
-                <button
-                  key={opt.id}
-                  type="button"
-                  onClick={() => setGenderFilter(opt.id)}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
-                    genderFilter === opt.id
-                      ? 'bg-white text-[#14532D] font-semibold shadow-sm'
-                      : 'text-[#4E5651] hover:text-[#111815]'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-
-            <div className="relative min-w-[230px] lg:w-64">
-              <Search className="w-4 h-4 text-[#8C948E] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Cari item biaya (mis. Seragam)..."
-                className="w-full pl-9 pr-3 py-2 text-xs sm:text-sm bg-[#F9FAF9] border border-[#D4D9D4] rounded-lg text-[#111815] placeholder:text-[#8C948E] focus:outline-none focus:border-[#14532D] focus:bg-white"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Informative note */}
-        <div className="pt-3 border-t border-[#EFF1EF] flex items-start gap-2.5 text-xs text-[#4E5651]">
+        <div className="pt-1 flex items-start gap-2 text-xs text-[#4E5651]">
           <Wallet className="w-4 h-4 text-[#926C15] shrink-0 mt-0.5" />
           <p className="leading-relaxed">
-            Nominal berikut mengacu pada edaran resmi{' '}
+            Nominal mengacu pada edaran resmi{' '}
             <strong>Biaya Pendaftaran Peserta Didik Baru {FEE_ACADEMIC_YEAR}</strong> Yayasan Pondok
             Pesantren Muttaqin Josenan Madiun. Bagian bertanda <strong>-</strong> menandakan tidak
             dikenakan komponen tersebut.
@@ -243,127 +156,199 @@ export const FeeInfoView: React.FC<FeeInfoViewProps> = ({ onRegisterForUnit }) =
         </div>
       </section>
 
-      {/* Detailed Fee Breakdown Tables */}
-      {visibleSchedules.length === 0 ? (
-        <div className="bg-white border border-[#E2E5E2] rounded-2xl p-8 text-center space-y-2">
-          <p className="font-display text-base font-bold text-[#111815]">
-            Komponen biaya tidak ditemukan
-          </p>
-          <p className="text-xs sm:text-sm text-[#4E5651]">
-            Tidak ada rincian biaya yang cocok dengan kata kunci &ldquo;{searchTerm}&rdquo;.
-          </p>
-          <button
-            type="button"
-            onClick={() => {
-              setSearchTerm('');
-              setSelectedCategory('ALL');
-            }}
-            className="mt-2 inline-flex items-center px-3.5 py-2 text-xs font-semibold text-[#14532D] bg-[#F4F8F5] hover:bg-[#E7F0EA] rounded-lg transition-colors"
+      {/* Instant Breakdown Modal when clicking any cost box */}
+      {activeModalCategory && (() => {
+        const modalGroup = FEE_SCHEDULES[activeModalCategory];
+        return (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="fee-detail-modal-title"
+            className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/50 backdrop-blur-[2px]"
+            onClick={() => setActiveModalCategory(null)}
           >
-            Tampilkan Semua Rincian
-          </button>
-        </div>
-      ) : (
-        <div className="space-y-5">
-          {visibleSchedules.map((group) => (
-            <section
-              key={group.id}
-              className="bg-white border border-[#E2E5E2] rounded-2xl overflow-hidden"
+            <div
+              className="w-full max-w-3xl max-h-[90vh] bg-white border border-[#E2E5E2] rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
             >
-              <div className="px-5 py-4 border-b border-[#E2E5E2] bg-[#F7F9F7] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <img
-                    src={getCategoryLogoPath(group.id)}
-                    alt={`Logo ${group.shortName}`}
-                    className="w-10 h-10 rounded-lg object-contain bg-white border border-[#E2E5E2] p-0.5 shrink-0"
-                  />
-                  <div>
-                    <h2 className="font-display text-base sm:text-lg font-bold text-[#111815]">
-                      {group.title}
-                    </h2>
-                    <p className="text-xs text-[#4E5651]">{group.subtitle}</p>
+              {/* Modal Header */}
+              <div className="px-4 sm:px-6 py-4 border-b border-[#E2E5E2] bg-[#F7F9F7] space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <img
+                      src={getCategoryLogoPath(modalGroup.id)}
+                      alt={`Logo ${modalGroup.shortName}`}
+                      className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl object-contain bg-white border border-[#E2E5E2] p-0.5 shrink-0"
+                    />
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-semibold text-[#926C15]">
+                        Rincian Biaya Pendaftaran {FEE_ACADEMIC_YEAR}
+                      </p>
+                      <h2
+                        id="fee-detail-modal-title"
+                        className="font-display text-base sm:text-lg font-bold text-[#111815] truncate"
+                      >
+                        {modalGroup.title}
+                      </h2>
+                    </div>
                   </div>
-                </div>
 
-                {group.registerUnit && (
                   <button
                     type="button"
-                    onClick={() => onRegisterForUnit(group.registerUnit!)}
-                    className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-[#14532D] bg-white border border-[#14532D]/40 hover:bg-[#14532D] hover:text-white rounded-lg transition-colors whitespace-nowrap shrink-0"
+                    aria-label="Tutup rincian biaya"
+                    onClick={() => setActiveModalCategory(null)}
+                    className="w-9 h-9 rounded-lg border border-[#D4D9D4] bg-white text-[#4E5651] hover:text-[#111815] hover:bg-[#F2F4F2] inline-flex items-center justify-center shrink-0 transition-colors"
                   >
-                    <span>Daftar {group.shortName}</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
+                    <X className="w-4 h-4" />
                   </button>
-                )}
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-1">
+                    {FEE_CATEGORY_ORDER.map((catId) => (
+                      <button
+                        key={catId}
+                        type="button"
+                        onClick={() => setActiveModalCategory(catId)}
+                        className={`px-2.5 py-1 text-xs font-semibold rounded-md border transition-colors whitespace-nowrap ${
+                          activeModalCategory === catId
+                            ? 'bg-[#14532D] text-white border-[#14532D]'
+                            : 'bg-white text-[#4E5651] border-[#D4D9D4] hover:border-[#14532D] hover:text-[#111815]'
+                        }`}
+                      >
+                        {FEE_SCHEDULES[catId].shortName}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="inline-flex items-center p-0.5 bg-[#E7EAE7] rounded-lg shrink-0">
+                    {(
+                      [
+                        { id: 'all', label: 'Putra & Putri' },
+                        { id: 'putra', label: 'Putra' },
+                        { id: 'putri', label: 'Putri' },
+                      ] as const
+                    ).map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setGenderFilter(opt.id)}
+                        className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
+                          genderFilter === opt.id
+                            ? 'bg-white text-[#14532D] font-semibold shadow-sm'
+                            : 'text-[#4E5651] hover:text-[#111815]'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
 
-              <div className="overflow-x-auto">
+              {/* Scrollable Breakdown Table */}
+              <div className="flex-1 overflow-y-auto overflow-x-auto">
                 <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-[#E2E5E2] bg-white text-xs font-semibold text-[#4E5651]">
-                      <th scope="col" className="py-3 pl-5 pr-3 w-12">
+                  <thead className="sticky top-0 bg-white border-b border-[#E2E5E2] z-10">
+                    <tr className="text-xs font-semibold text-[#4E5651]">
+                      <th scope="col" className="py-2.5 pl-4 sm:pl-6 pr-2 w-11">
                         No.
                       </th>
-                      <th scope="col" className="py-3 px-3">
+                      <th scope="col" className="py-2.5 px-2.5">
                         Keterangan
                       </th>
                       {showPutra && (
-                        <th scope="col" className="py-3 px-4 text-right whitespace-nowrap w-36 sm:w-44">
+                        <th scope="col" className="py-2.5 px-3 sm:px-4 text-right whitespace-nowrap">
                           Putra
                         </th>
                       )}
                       {showPutri && (
-                        <th scope="col" className="py-3 pl-4 pr-5 text-right whitespace-nowrap w-36 sm:w-44">
+                        <th scope="col" className="py-2.5 pl-3 pr-4 sm:pr-6 text-right whitespace-nowrap">
                           Putri
                         </th>
                       )}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#EFF1EF] text-xs sm:text-sm">
-                    {group.items.map((item) => (
-                      <tr key={item.no} className="odd:bg-white even:bg-[#FAFBF9] hover:bg-[#F4F8F5]/60">
-                        <td className="py-2.5 pl-5 pr-3 font-mono text-xs text-[#4E5651] tabular-nums">
+                    {modalGroup.items.map((item) => (
+                      <tr key={item.no} className="odd:bg-white even:bg-[#FAFBF9]">
+                        <td className="py-2.5 pl-4 sm:pl-6 pr-2 font-mono text-xs text-[#4E5651] tabular-nums">
                           {item.no}
                         </td>
-                        <td className="py-2.5 px-3 text-[#111815] font-medium">{item.label}</td>
+                        <td className="py-2.5 px-2.5 text-[#111815] font-medium">{item.label}</td>
                         {showPutra && (
-                          <td className="py-2.5 px-4 text-right font-mono tabular-nums text-[#111815]">
+                          <td className="py-2.5 px-3 sm:px-4 text-right font-mono tabular-nums text-[#111815] whitespace-nowrap">
                             {item.putra !== null ? formatRupiah(item.putra) : '-'}
                           </td>
                         )}
                         {showPutri && (
-                          <td className="py-2.5 pl-4 pr-5 text-right font-mono tabular-nums text-[#111815]">
+                          <td className="py-2.5 pl-3 pr-4 sm:pr-6 text-right font-mono tabular-nums text-[#111815] whitespace-nowrap">
                             {item.putri !== null ? formatRupiah(item.putri) : '-'}
                           </td>
                         )}
                       </tr>
                     ))}
                   </tbody>
-                  {!searchTerm.trim() && (
-                    <tfoot>
-                      <tr className="border-t-2 border-[#14532D]/25 bg-[#F2F6F3] text-xs sm:text-sm font-bold text-[#14532D]">
-                        <td colSpan={2} className="py-3 pl-5 pr-3">
-                          {group.totalLabel}
+                  <tfoot className="sticky bottom-0 z-10 bg-[#F2F6F3] shadow-[0_-2px_0_rgba(20,83,45,0.2)]">
+                    <tr className="text-xs sm:text-sm font-bold text-[#14532D]">
+                      <td colSpan={2} className="py-3 pl-4 sm:pl-6 pr-2">
+                        {modalGroup.totalLabel}
+                      </td>
+                      {showPutra && (
+                        <td className="py-3 px-3 sm:px-4 text-right font-mono tabular-nums whitespace-nowrap">
+                          {formatRupiah(modalGroup.totalPutra)}
                         </td>
-                        {showPutra && (
-                          <td className="py-3 px-4 text-right font-mono tabular-nums whitespace-nowrap">
-                            {formatRupiah(group.totalPutra)}
-                          </td>
-                        )}
-                        {showPutri && (
-                          <td className="py-3 pl-4 pr-5 text-right font-mono tabular-nums whitespace-nowrap">
-                            {formatRupiah(group.totalPutri)}
-                          </td>
-                        )}
-                      </tr>
-                    </tfoot>
-                  )}
+                      )}
+                      {showPutri && (
+                        <td className="py-3 pl-3 pr-4 sm:pr-6 text-right font-mono tabular-nums whitespace-nowrap">
+                          {formatRupiah(modalGroup.totalPutri)}
+                        </td>
+                      )}
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
-            </section>
-          ))}
-        </div>
-      )}
+
+              {/* Modal Footer Actions */}
+              <div className="px-4 sm:px-6 py-3.5 border-t border-[#E2E5E2] bg-white flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2.5">
+                <a
+                  href={OFFICIAL_FEE_PDF_PATH}
+                  download="Biaya-PPDB-2027-2028-PP-Muttaqin.pdf"
+                  className="inline-flex items-center justify-center gap-2 px-3.5 py-2 text-xs font-semibold text-[#4E5651] bg-[#F2F4F2] hover:bg-[#E7EAE7] rounded-lg transition-colors whitespace-nowrap"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Unduh PDF Resmi</span>
+                </a>
+
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                  {modalGroup.registerUnit && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const target = modalGroup.registerUnit!;
+                        setActiveModalCategory(null);
+                        onRegisterForUnit(target);
+                      }}
+                      className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-[#14532D] hover:bg-[#114626] rounded-lg transition-colors whitespace-nowrap"
+                    >
+                      <span>Daftar {modalGroup.shortName}</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setActiveModalCategory(null)}
+                    className="inline-flex items-center justify-center px-4 py-2 text-xs font-semibold text-[#111815] bg-white border border-[#D4D9D4] hover:bg-[#F2F4F2] rounded-lg transition-colors whitespace-nowrap"
+                  >
+                    Tutup
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };
+
