@@ -1,0 +1,6 @@
+{
+  "name": "SPMB PP Muttaqin Josenan Madiun",
+  "description": "Aplikasi Sistem Penerimaan Murid Baru (SPMB) RA/TK, SDIT, SMP, dan SMA Yayasan Pondok Pesantren Muttaqin Josenan Madiun dengan bukti pendaftaran PDF dan sinkronisasi Google Sheets real-time.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
