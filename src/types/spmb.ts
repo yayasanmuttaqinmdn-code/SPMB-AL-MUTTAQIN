@@ -27,6 +27,66 @@ export interface CustomFieldDefinition {
   exactDigits?: number;
 }
 
+export type StandardFormFieldKey =
+  | 'pasFotoDataUrl'
+  | 'namaLengkap'
+  | 'namaPanggilan'
+  | 'agama'
+  | 'tempatLahir'
+  | 'tanggalLahir'
+  | 'jenisKelamin'
+  | 'nisn'
+  | 'nik'
+  | 'noKk'
+  | 'anakKe'
+  | 'jumlahSaudara'
+  | 'jalurPendaftaran'
+  | 'asalSekolah'
+  | 'jenisPrestasi'
+  | 'golDarah'
+  | 'tinggiBadan'
+  | 'beratBadan'
+  | 'alergi'
+  | 'alamatJalan'
+  | 'alamatRt'
+  | 'alamatRw'
+  | 'alamatDesa'
+  | 'alamatKecamatan'
+  | 'alamatKota'
+  | 'alamatProvinsi'
+  | 'namaAyah'
+  | 'tempatLahirAyah'
+  | 'tanggalLahirAyah'
+  | 'nikAyah'
+  | 'statusAyah'
+  | 'pekerjaanAyah'
+  | 'pendidikanAyah'
+  | 'penghasilanAyah'
+  | 'noHpAyah'
+  | 'emailAyah'
+  | 'namaIbu'
+  | 'tempatLahirIbu'
+  | 'tanggalLahirIbu'
+  | 'nikIbu'
+  | 'statusIbu'
+  | 'pekerjaanIbu'
+  | 'pendidikanIbu'
+  | 'penghasilanIbu'
+  | 'noHpIbu'
+  | 'emailIbu'
+  | 'alamatOrtuJalan'
+  | 'alamatOrtuRt'
+  | 'alamatOrtuRw'
+  | 'alamatOrtuDesa'
+  | 'alamatOrtuKecamatan'
+  | 'alamatOrtuKota'
+  | 'alamatOrtuProvinsi'
+  | 'pengajianDaerah'
+  | 'pengajianDesa'
+  | 'pengajianKelompok';
+
+export type StandardFieldRequiredMap = Record<StandardFormFieldKey, boolean>;
+
 export interface UnitFormConfig {
   unit: UnitId;
   quota: number;
@@ -35,6 +95,7 @@ export interface UnitFormConfig {
   instructions: string;
   requiredDocs: string[];
   fields: CustomFieldDefinition[];
+  requiredFields?: Partial<Record<StandardFormFieldKey, boolean>>;
 }
 
 export type FormSchemaConfig = Record<UnitId, UnitFormConfig>;

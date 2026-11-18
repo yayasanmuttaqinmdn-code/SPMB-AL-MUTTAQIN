@@ -18,8 +18,10 @@ import {
   findRegistrationsByName,
   FOUNDATION_LOGO_PATH,
   generateRegistrationNumber,
+  getDefaultRequiredFields,
   getUnitLogoPath,
   isGenderSplitQuotaUnit,
+  isStandardFieldRequired,
   isValidAppsScriptExecUrl,
   mergeRegistrationLists,
   normalizeFormSchemaConfig,
@@ -30,12 +32,14 @@ import {
   PRIMARY_SPREADSHEET_CONFIG,
   registrationToSheetRow,
   resolveUnitQuotaTargets,
+  resolveUnitRequiredFields,
   resolveUnitWebhookDispatch,
   sanitizePublicSheetsConfig,
   searchRegistrationsForStatus,
   SHEET_END_COLUMN,
   SHEET_HEADERS,
   sheetRowToRegistration,
+  STANDARD_FORM_FIELD_GROUPS,
   UNIT_LOGO_PATHS,
   validateRegistrationInput,
 } from './spmbLogic';
@@ -904,7 +908,133 @@ test('SMP and SMA split registration quotas into Putra and Putri while RA/TK and
   assert.equal(publicStats.byUnit.RA_TK.quotaPutra, undefined);
 });
 
+test('Admin can toggle standard registration fields between required and optional per unit while protecting locked identifiers', () => {
+  // Default maps
+  const raDefaults = getDefaultRequiredFields('RA_TK');
+  const sditDefaults = getDefaultRequiredFields('SDIT');
+  assert.equal(raDefaults.nisn, false);
+  assert.equal(sditDefaults.nisn, true);
+  assert.equal(raDefaults.namaLengkap, true);
+  assert.equal(raDefaults.pasFotoDataUrl, true);
+  assert.equal(STANDARD_FORM_FIELD_GROUPS.length, 7);
 
+  // Locked fields (namaLengkap & jenisKelamin) cannot be made optional
+  const resolvedSdit = resolveUnitRequiredFields('SDIT', {
+    requiredFields: {
+      namaLengkap: false,
+      jenisKelamin: false,
+      nik: false,
+      emailAyah: false,
+      pasFotoDataUrl: false,
+    },
+  });
+  assert.equal(resolvedSdit.namaLengkap, true);
+  assert.equal(resolvedSdit.jenisKelamin, true);
+  assert.equal(resolvedSdit.nik, false);
+  assert.equal(resolvedSdit.emailAyah, false);
+  assert.equal(resolvedSdit.pasFotoDataUrl, false);
+  assert.equal(
+    isStandardFieldRequired('SDIT', 'namaLengkap', {
+      unit: 'SDIT',
+      quota: 90,
+      instructions: '',
+      requiredDocs: [],
+      fields: [],
+      requiredFields: { namaLengkap: false },
+    }),
+    true
+  );
 
+  // normalizeFormSchemaConfig preserves custom requiredFields and backfills missing legacy units
+  const normalizedCfg = normalizeFormSchemaConfig({
+    SMP: {
+      ...DEFAULT_FORM_CONFIG.SMP,
+      requiredFields: {
+        pasFotoDataUrl: false,
+        nik: false,
+        noKk: false,
+        nikAyah: false,
+        emailAyah: false,
+        noHpAyah: false,
+        nikIbu: false,
+        emailIbu: false,
+        noHpIbu: false,
+        tinggiBadan: false,
+        beratBadan: false,
+        pengajianKelompok: false,
+        agama: false,
+        golDarah: false,
+      },
+    },
+  });
 
+  assert.equal(normalizedCfg.SMP.requiredFields?.nik, false);
+  assert.equal(normalizedCfg.SMP.requiredFields?.pasFotoDataUrl, false);
+  assert.equal(normalizedCfg.RA_TK.requiredFields?.nisn, false);
+  assert.equal(normalizedCfg.SDIT.requiredFields?.nisn, true);
+
+  // Validation skips empty checks for optional fields while keeping format checks when filled
+  const smpInput = normalizeRegistrationInput({
+    unit: 'SMP',
+    namaLengkap: 'Fatimah Az-Zahra',
+    namaPanggilan: 'Fatimah',
+    agama: '',
+    tempatLahir: 'Madiun',
+    tanggalLahir: '2014-05-12',
+    jenisKelamin: 'Perempuan',
+    nisn: '0123456789',
+    nik: '',
+    noKk: '',
+    anakKe: '1',
+    jumlahSaudara: '2',
+    pasFotoDataUrl: '',
+    asalSekolah: 'SDIT Muttaqin',
+    jenisPrestasi: '-',
+    golDarah: '',
+    tinggiBadan: '',
+    beratBadan: '',
+    alergi: '-',
+    alamatJalan: 'Jl. Serayu No. 1',
+    alamatRt: '01',
+    alamatRw: '02',
+    alamatDesa: 'Josenan',
+    alamatKecamatan: 'Taman',
+    alamatKota: 'Kota Madiun',
+    alamatProvinsi: 'Jawa Timur',
+    namaAyah: 'Ahmad',
+    tempatLahirAyah: 'Madiun',
+    tanggalLahirAyah: '1980-01-01',
+    nikAyah: '',
+    statusAyah: 'Masih Hidup',
+    pekerjaanAyah: 'Guru',
+    noHpAyah: '',
+    emailAyah: '',
+    namaIbu: 'Aisyah',
+    tempatLahirIbu: 'Madiun',
+    tanggalLahirIbu: '1983-02-02',
+    nikIbu: '',
+    statusIbu: 'Masih Hidup',
+    pekerjaanIbu: 'Ibu Rumah Tangga',
+    noHpIbu: '',
+    emailIbu: '',
+    pengajianDaerah: 'KOTA MADIUN',
+    pengajianDesa: 'JOSENAN',
+    pengajianKelompok: '',
+    jalurPendaftaran: 'Reguler',
+  });
+
+  assert.deepEqual(validateRegistrationInput(smpInput, normalizedCfg.SMP), {});
+
+  // Providing invalid format on an optional field must still return a format error
+  const invalidOptionalFormat = {
+    ...smpInput,
+    nik: '123',
+    emailAyah: 'bukan-email',
+    noHpAyah: '081',
+  };
+  const formatErrs = validateRegistrationInput(invalidOptionalFormat, normalizedCfg.SMP);
+  assert.ok(formatErrs.nik);
+  assert.ok(formatErrs.emailAyah);
+  assert.ok(formatErrs.noHpAyah);
+});
 

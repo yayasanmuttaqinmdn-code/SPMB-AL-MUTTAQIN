@@ -4,12 +4,15 @@ import {
   ArrowDown,
   ArrowUp,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   Download,
   Edit3,
   Eye,
   Lock,
   LogOut,
   Plus,
+  RotateCcw,
   Save,
   Search,
   ShieldCheck,
@@ -24,12 +27,16 @@ import type {
   SelectionStatus,
   SheetsPublicConfig,
   SheetsSyncMode,
+  StandardFormFieldKey,
   UnitId,
   UnitSheetsTarget,
 } from '../types/spmb.ts';
 import {
+  getDefaultRequiredFields,
   isGenderSplitQuotaUnit,
   resolveUnitQuotaTargets,
+  resolveUnitRequiredFields,
+  STANDARD_FORM_FIELD_GROUPS,
   UNIT_CONFIGS,
   UNIT_ORDER,
 } from '../utils/spmbLogic.ts';
@@ -172,6 +179,12 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
   const [newPlaceholder, setNewPlaceholder] = useState('');
   const [newOptionsText, setNewOptionsText] = useState('');
   const [newDocText, setNewDocText] = useState('');
+
+  // Standard field required/optional toggle UI state
+  const [reqSearchQuery, setReqSearchQuery] = useState('');
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
+    student_identity: true,
+  });
 
   // Applicant table filters
   const [unitFilter, setUnitFilter] = useState<'ALL' | UnitId>('ALL');
@@ -362,6 +375,88 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
       ...curr,
       requiredDocs: curr.requiredDocs.filter((_, i) => i !== idx),
     }));
+  };
+
+  const activeRequiredMap = resolveUnitRequiredFields(editingUnit, activeDraft);
+  const allStandardFieldsCount = STANDARD_FORM_FIELD_GROUPS.reduce(
+    (sum, group) => sum + group.fields.length,
+    0
+  );
+  const requiredStandardFieldsCount = STANDARD_FORM_FIELD_GROUPS.reduce(
+    (sum, group) =>
+      sum + group.fields.filter((field) => activeRequiredMap[field.key]).length,
+    0
+  );
+  const optionalStandardFieldsCount = allStandardFieldsCount - requiredStandardFieldsCount;
+
+  const handleToggleStandardFieldRequired = (
+    key: StandardFormFieldKey,
+    nextRequired: boolean
+  ) => {
+    updateUnitDraft((curr) => ({
+      ...curr,
+      requiredFields: {
+        ...resolveUnitRequiredFields(editingUnit, curr),
+        [key]: nextRequired,
+      },
+    }));
+  };
+
+  const handleToggleGroupRequired = (groupId: string, nextRequired: boolean) => {
+    const group = STANDARD_FORM_FIELD_GROUPS.find((g) => g.id === groupId);
+    if (!group) return;
+    updateUnitDraft((curr) => {
+      const nextMap = { ...resolveUnitRequiredFields(editingUnit, curr) };
+      for (const field of group.fields) {
+        if (!field.lockedRequired) {
+          nextMap[field.key] = nextRequired;
+        }
+      }
+      return {
+        ...curr,
+        requiredFields: nextMap,
+      };
+    });
+  };
+
+  const handleSetAllStandardRequired = () => {
+    updateUnitDraft((curr) => {
+      const nextMap = { ...resolveUnitRequiredFields(editingUnit, curr) };
+      for (const group of STANDARD_FORM_FIELD_GROUPS) {
+        for (const field of group.fields) {
+          nextMap[field.key] = true;
+        }
+      }
+      return {
+        ...curr,
+        requiredFields: nextMap,
+      };
+    });
+  };
+
+  const handleResetDefaultRequired = () => {
+    updateUnitDraft((curr) => ({
+      ...curr,
+      requiredFields: getDefaultRequiredFields(editingUnit),
+    }));
+  };
+
+  const handleApplyRequiredToAllUnits = () => {
+    const templateMap = resolveUnitRequiredFields(editingUnit, activeDraft);
+    setDraftConfig((prev) => {
+      const next = structuredClone(prev);
+      for (const u of UNIT_ORDER) {
+        next[u] = {
+          ...next[u],
+          requiredFields: { ...templateMap },
+        };
+      }
+      return next;
+    });
+    setConfigError('');
+    setConfigFeedback(
+      `Pengaturan kolom wajib/opsional dari ${UNIT_CONFIGS[editingUnit].shortName} diterapkan ke draf semua jenjang. Klik "Simpan Keperluan Data" untuk mengaktifkan.`
+    );
   };
 
   const handleSaveAllConfig = async () => {
@@ -853,6 +948,233 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
                   )}
                 </div>
               </div>
+
+              {/* Standard Fields Required / Optional Matrix */}
+              <div className="bg-white border border-[#E2E5E2] rounded-2xl p-4 sm:p-6 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pb-3 border-b border-[#E2E5E2]">
+                  <div className="space-y-1">
+                    <h2 className="font-display text-lg font-bold text-[#111815]">
+                      Pengaturan Kolom Wajib &amp; Tidak Wajib (Opsional)
+                    </h2>
+                    <p className="text-xs text-[#4E5651]">
+                      Centang kolom yang <strong>Wajib Diisi</strong> atau matikan centang agar menjadi{' '}
+                      <strong>Tidak Wajib (Opsional)</strong> untuk pendaftar{' '}
+                      {UNIT_CONFIGS[editingUnit].fullName}.
+                    </p>
+                  </div>
+
+                  <div className="text-xs font-mono font-semibold text-[#14532D] bg-[#F2F4F2] border border-[#E2E5E2] rounded-lg px-3 py-1.5 whitespace-nowrap tabular-nums">
+                    {requiredStandardFieldsCount} Wajib · {optionalStandardFieldsCount} Tidak Wajib
+                  </div>
+                </div>
+
+                {/* Search + Bulk Actions */}
+                <div className="space-y-2.5">
+                  <div className="relative w-full">
+                    <Search className="w-4 h-4 text-[#4E5651] absolute left-3 top-1/2 -translate-y-1/2" />
+                    <label htmlFor="admin-field-req-search" className="sr-only">
+                      Cari kolom formulir standar
+                    </label>
+                    <input
+                      id="admin-field-req-search"
+                      type="text"
+                      value={reqSearchQuery}
+                      onChange={(e) => setReqSearchQuery(e.target.value)}
+                      placeholder="Cari kolom formulir (contoh: NIK, Foto, Email)..."
+                      className="w-full pl-9 pr-3 py-2 text-xs sm:text-sm bg-[#F9FAF9] border border-[#D4D9D4] rounded-lg focus:outline-none focus:border-[#14532D] focus:bg-white"
+                    />
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleSetAllStandardRequired}
+                      className="px-3 py-1.5 text-xs font-semibold text-[#111815] bg-[#F2F4F2] hover:bg-[#E7EAE7] rounded-lg whitespace-nowrap"
+                    >
+                      Wajibkan Semua
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleResetDefaultRequired}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#111815] bg-[#F2F4F2] hover:bg-[#E7EAE7] rounded-lg whitespace-nowrap"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>Reset Default</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleApplyRequiredToAllUnits}
+                      className="px-3 py-1.5 text-xs font-semibold text-[#14532D] bg-[#14532D]/10 hover:bg-[#14532D]/15 rounded-lg whitespace-nowrap"
+                    >
+                      Terapkan ke Semua Jenjang
+                    </button>
+                  </div>
+                </div>
+
+                {/* Collapsible Section Groups */}
+                <div className="space-y-3">
+                  {(() => {
+                    const q = reqSearchQuery.trim().toLowerCase();
+                    const visibleGroups = STANDARD_FORM_FIELD_GROUPS.map((group) => ({
+                      ...group,
+                      matchingFields: q
+                        ? group.fields.filter(
+                            (f) =>
+                              f.label.toLowerCase().includes(q) ||
+                              (f.hint && f.hint.toLowerCase().includes(q)) ||
+                              group.title.toLowerCase().includes(q)
+                          )
+                        : group.fields,
+                    })).filter((g) => g.matchingFields.length > 0);
+
+                    if (visibleGroups.length === 0) {
+                      return (
+                        <p className="text-xs text-[#4E5651] py-6 text-center border border-dashed border-[#D4D9D4] rounded-xl">
+                          Tidak ada kolom formulir yang cocok dengan pencarian &ldquo;{reqSearchQuery}&rdquo;.
+                        </p>
+                      );
+                    }
+
+                    return visibleGroups.map((group) => {
+                      const isExpanded = Boolean(q) || Boolean(expandedGroups[group.id]);
+                      const groupReqCount = group.fields.filter(
+                        (f) => activeRequiredMap[f.key]
+                      ).length;
+
+                      return (
+                        <div
+                          key={group.id}
+                          className="rounded-xl border border-[#E2E5E2] bg-[#F9FAF9] overflow-hidden"
+                        >
+                          <div className="px-3.5 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-[#F4F6F4] border-b border-[#E2E5E2]">
+                            <button
+                              type="button"
+                              aria-expanded={isExpanded}
+                              onClick={() =>
+                                setExpandedGroups((prev) => ({
+                                  ...prev,
+                                  [group.id]: !prev[group.id],
+                                }))
+                              }
+                              className="flex items-center gap-2 text-left min-w-0"
+                            >
+                              {isExpanded ? (
+                                <ChevronUp className="w-4 h-4 text-[#14532D] shrink-0" />
+                              ) : (
+                                <ChevronDown className="w-4 h-4 text-[#4E5651] shrink-0" />
+                              )}
+                              <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                                <span className="text-xs sm:text-sm font-bold text-[#111815]">
+                                  {group.title}
+                                </span>
+                                <span className="text-[11px] font-mono text-[#14532D] whitespace-nowrap tabular-nums">
+                                  ({groupReqCount}/{group.fields.length} Wajib)
+                                </span>
+                              </span>
+                            </button>
+
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => handleToggleGroupRequired(group.id, true)}
+                                className="px-2 py-1 text-[11px] font-semibold text-[#14532D] bg-white border border-[#D4D9D4] hover:border-[#14532D] rounded-md whitespace-nowrap"
+                              >
+                                Wajibkan Bagian
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleToggleGroupRequired(group.id, false)}
+                                className="px-2 py-1 text-[11px] font-semibold text-[#4E5651] bg-white border border-[#D4D9D4] hover:text-[#111815] rounded-md whitespace-nowrap"
+                              >
+                                Opsionalkan Bagian
+                              </button>
+                            </div>
+                          </div>
+
+                          {isExpanded && (
+                            <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                              {group.matchingFields.map((field) => {
+                                const isReq = activeRequiredMap[field.key];
+                                const checkboxId = `req-field-${field.key}`;
+                                return (
+                                  <div
+                                    key={field.key}
+                                    className={`p-2.5 rounded-lg border bg-white flex items-start justify-between gap-2.5 ${
+                                      isReq ? 'border-[#D4D9D4]' : 'border-[#E2E5E2] bg-[#FCFDFC]'
+                                    }`}
+                                  >
+                                    <label
+                                      htmlFor={checkboxId}
+                                      className={`flex items-start gap-2.5 min-w-0 flex-1 ${
+                                        field.lockedRequired ? 'cursor-not-allowed' : 'cursor-pointer'
+                                      }`}
+                                    >
+                                      <input
+                                        id={checkboxId}
+                                        type="checkbox"
+                                        checked={isReq}
+                                        disabled={Boolean(field.lockedRequired)}
+                                        onChange={(e) =>
+                                          handleToggleStandardFieldRequired(
+                                            field.key,
+                                            e.target.checked
+                                          )
+                                        }
+                                        className="w-4 h-4 mt-0.5 accent-[#14532D] shrink-0"
+                                      />
+                                      <div className="min-w-0">
+                                        <p className="text-xs font-semibold text-[#111815] leading-snug">
+                                          {field.label}
+                                        </p>
+                                        {field.hint && (
+                                          <p className="text-[11px] text-[#4E5651] leading-snug mt-0.5">
+                                            {field.hint}
+                                          </p>
+                                        )}
+                                      </div>
+                                    </label>
+
+                                    <span
+                                      className={`text-[11px] font-semibold whitespace-nowrap shrink-0 pt-0.5 ${
+                                        field.lockedRequired
+                                          ? 'text-[#14532D]'
+                                          : isReq
+                                            ? 'text-[#14532D]'
+                                            : 'text-[#6A736D]'
+                                      }`}
+                                    >
+                                      {field.lockedRequired
+                                        ? 'Wajib Utama'
+                                        : isReq
+                                          ? 'Wajib'
+                                          : 'Tidak Wajib'}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+
+                <div className="pt-2 border-t border-[#E2E5E2] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <p className="text-[11px] text-[#4E5651]">
+                    Catatan: Kolom bertanda <strong className="text-[#14532D]">Wajib Utama</strong> selalu aktif untuk menjaga pencatatan kuota &amp; database Google Sheets.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => void handleSaveAllConfig()}
+                    disabled={isSavingConfig}
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-[#14532D] hover:bg-[#114626] rounded-lg whitespace-nowrap disabled:opacity-60"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>{isSavingConfig ? 'Menyimpan...' : 'Simpan Keperluan Data'}</span>
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* Right 5 Cols: Add New Field & Required Docs */}
@@ -1086,10 +1408,10 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
                     </td>
                     <td className="py-3 px-4">
                       <p className="text-xs font-medium text-[#111815]">
-                        {record.namaAyah || record.namaIbu}
+                        {record.namaAyah || record.namaIbu || '-'}
                       </p>
                       <p className="text-xs font-mono text-[#4E5651] tabular-nums">
-                        {record.noWhatsapp}
+                        {record.noWhatsapp || record.noHpAyah || record.noHpIbu || '-'}
                       </p>
                     </td>
                     <td className="py-3 px-4 text-xs whitespace-nowrap">

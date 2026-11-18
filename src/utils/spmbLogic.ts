@@ -6,6 +6,8 @@ import type {
   SelectionStatus,
   SheetsPublicConfig,
   SheetsSyncMode,
+  StandardFieldRequiredMap,
+  StandardFormFieldKey,
   UnitConfig,
   UnitFormConfig,
   UnitId,
@@ -208,6 +210,178 @@ export function getUnitLogoPath(unit: UnitId): string {
   return UNIT_LOGO_PATHS[unit] || FOUNDATION_LOGO_PATH;
 }
 
+export interface StandardFormFieldMeta {
+  key: StandardFormFieldKey;
+  label: string;
+  hint?: string;
+  lockedRequired?: boolean;
+}
+
+export interface StandardFormFieldGroup {
+  id: string;
+  title: string;
+  fields: StandardFormFieldMeta[];
+}
+
+export const LOCKED_STANDARD_FIELDS: ReadonlySet<StandardFormFieldKey> = new Set([
+  'namaLengkap',
+  'jenisKelamin',
+]);
+
+export const STANDARD_FORM_FIELD_GROUPS: StandardFormFieldGroup[] = [
+  {
+    id: 'student_identity',
+    title: '01A. Identitas & Pas Foto Siswa',
+    fields: [
+      { key: 'pasFotoDataUrl', label: 'Pas Foto Calon Murid (3×4)' },
+      {
+        key: 'namaLengkap',
+        label: 'Nama Lengkap Siswa',
+        hint: 'Wajib utama untuk identitas & cetak bukti PDF',
+        lockedRequired: true,
+      },
+      { key: 'namaPanggilan', label: 'Nama Panggilan' },
+      { key: 'agama', label: 'Agama' },
+      { key: 'tempatLahir', label: 'Tempat Lahir Siswa' },
+      { key: 'tanggalLahir', label: 'Tanggal Lahir Siswa' },
+      {
+        key: 'jenisKelamin',
+        label: 'Jenis Kelamin',
+        hint: 'Wajib utama untuk kuota Putra / Putri',
+        lockedRequired: true,
+      },
+      { key: 'nisn', label: 'NISN (10 Digit)', hint: '10 digit angka jika diisi' },
+      { key: 'nik', label: 'NIK Siswa (16 Digit)', hint: '16 digit angka jika diisi' },
+      { key: 'noKk', label: 'No. Kartu Keluarga (16 Digit)', hint: '16 digit angka jika diisi' },
+      { key: 'anakKe', label: 'Anak Ke-' },
+      { key: 'jumlahSaudara', label: 'Jumlah Saudara Kandung' },
+      { key: 'jalurPendaftaran', label: 'Jalur Pendaftaran' },
+    ],
+  },
+  {
+    id: 'student_history',
+    title: '01B. Riwayat & Kesehatan Siswa',
+    fields: [
+      { key: 'asalSekolah', label: 'Asal Sekolah (TK/RA/SD/SMP)' },
+      { key: 'jenisPrestasi', label: 'Jenis Prestasi Yang Pernah Diraih' },
+      { key: 'golDarah', label: 'Golongan Darah' },
+      { key: 'tinggiBadan', label: 'Tinggi Badan (cm)' },
+      { key: 'beratBadan', label: 'Berat Badan (kg)' },
+      { key: 'alergi', label: 'Riwayat Alergi' },
+    ],
+  },
+  {
+    id: 'student_address',
+    title: '01C. Alamat Lengkap Siswa',
+    fields: [
+      { key: 'alamatJalan', label: 'Jalan / Dusun / Perumahan' },
+      { key: 'alamatRt', label: 'RT Siswa' },
+      { key: 'alamatRw', label: 'RW Siswa' },
+      { key: 'alamatDesa', label: 'Desa / Kelurahan Siswa' },
+      { key: 'alamatKecamatan', label: 'Kecamatan Siswa' },
+      { key: 'alamatKota', label: 'Kota / Kabupaten Siswa' },
+      { key: 'alamatProvinsi', label: 'Provinsi Siswa' },
+    ],
+  },
+  {
+    id: 'father_info',
+    title: '02A. Data Ayah / Wali',
+    fields: [
+      { key: 'namaAyah', label: 'Nama Ayah / Wali' },
+      { key: 'tempatLahirAyah', label: 'Tempat Lahir Ayah' },
+      { key: 'tanggalLahirAyah', label: 'Tanggal Lahir Ayah' },
+      { key: 'nikAyah', label: 'NIK Ayah (16 Digit)', hint: '16 digit angka jika diisi' },
+      { key: 'statusAyah', label: 'Status Hidup Ayah' },
+      { key: 'pekerjaanAyah', label: 'Pekerjaan Ayah' },
+      { key: 'pendidikanAyah', label: 'Pendidikan Terakhir Ayah' },
+      { key: 'penghasilanAyah', label: 'Penghasilan Ayah' },
+      { key: 'noHpAyah', label: 'No. HP / WhatsApp Ayah' },
+      { key: 'emailAyah', label: 'Alamat Email Ayah' },
+    ],
+  },
+  {
+    id: 'mother_info',
+    title: '02B. Data Ibu / Wali',
+    fields: [
+      { key: 'namaIbu', label: 'Nama Ibu / Wali' },
+      { key: 'tempatLahirIbu', label: 'Tempat Lahir Ibu' },
+      { key: 'tanggalLahirIbu', label: 'Tanggal Lahir Ibu' },
+      { key: 'nikIbu', label: 'NIK Ibu (16 Digit)', hint: '16 digit angka jika diisi' },
+      { key: 'statusIbu', label: 'Status Hidup Ibu' },
+      { key: 'pekerjaanIbu', label: 'Pekerjaan Ibu' },
+      { key: 'pendidikanIbu', label: 'Pendidikan Terakhir Ibu' },
+      { key: 'penghasilanIbu', label: 'Penghasilan Ibu' },
+      { key: 'noHpIbu', label: 'No. HP / WhatsApp Ibu' },
+      { key: 'emailIbu', label: 'Alamat Email Ibu' },
+    ],
+  },
+  {
+    id: 'parent_address',
+    title: '02C. Alamat Orang Tua / Wali',
+    fields: [
+      { key: 'alamatOrtuJalan', label: 'Jalan Alamat Orang Tua' },
+      { key: 'alamatOrtuRt', label: 'RT Orang Tua' },
+      { key: 'alamatOrtuRw', label: 'RW Orang Tua' },
+      { key: 'alamatOrtuDesa', label: 'Desa / Kelurahan Orang Tua' },
+      { key: 'alamatOrtuKecamatan', label: 'Kecamatan Orang Tua' },
+      { key: 'alamatOrtuKota', label: 'Kota / Kabupaten Orang Tua' },
+      { key: 'alamatOrtuProvinsi', label: 'Provinsi Orang Tua' },
+    ],
+  },
+  {
+    id: 'pengajian_info',
+    title: '03. Info Pengajian',
+    fields: [
+      { key: 'pengajianDaerah', label: 'Daerah Pengajian' },
+      { key: 'pengajianDesa', label: 'Desa Pengajian' },
+      { key: 'pengajianKelompok', label: 'Kelompok Pengajian' },
+    ],
+  },
+];
+
+export function getDefaultRequiredFields(unit: UnitId): StandardFieldRequiredMap {
+  const map = {} as StandardFieldRequiredMap;
+  for (const group of STANDARD_FORM_FIELD_GROUPS) {
+    for (const field of group.fields) {
+      map[field.key] = field.key === 'nisn' ? unit !== 'RA_TK' : true;
+    }
+  }
+  return map;
+}
+
+export function resolveUnitRequiredFields(
+  unit: UnitId,
+  unitConfig?: Partial<UnitFormConfig> | null
+): StandardFieldRequiredMap {
+  const defaults = getDefaultRequiredFields(unit);
+  const incoming = unitConfig?.requiredFields;
+  if (!incoming || typeof incoming !== 'object') {
+    return defaults;
+  }
+  const merged = { ...defaults };
+  for (const key of Object.keys(defaults) as StandardFormFieldKey[]) {
+    if (LOCKED_STANDARD_FIELDS.has(key)) {
+      merged[key] = true;
+    } else if (typeof incoming[key] === 'boolean') {
+      merged[key] = incoming[key] as boolean;
+    }
+  }
+  return merged;
+}
+
+export function isStandardFieldRequired(
+  unit: UnitId,
+  fieldKey: StandardFormFieldKey,
+  unitConfig?: Partial<UnitFormConfig> | null
+): boolean {
+  if (LOCKED_STANDARD_FIELDS.has(fieldKey)) return true;
+  const incoming = unitConfig?.requiredFields;
+  if (incoming && typeof incoming[fieldKey] === 'boolean') {
+    return incoming[fieldKey] as boolean;
+  }
+  return fieldKey === 'nisn' ? unit !== 'RA_TK' : true;
+}
+
 export const DEFAULT_FORM_CONFIG: FormSchemaConfig = {
   RA_TK: {
     unit: 'RA_TK',
@@ -215,6 +389,7 @@ export const DEFAULT_FORM_CONFIG: FormSchemaConfig = {
     instructions: 'Lengkapi formulir pendaftaran siswa, data orang tua/wali, serta info pengajian dengan benar.',
     requiredDocs: [...UNIT_CONFIGS.RA_TK.requiredDocs],
     fields: [],
+    requiredFields: getDefaultRequiredFields('RA_TK'),
   },
   SDIT: {
     unit: 'SDIT',
@@ -222,6 +397,7 @@ export const DEFAULT_FORM_CONFIG: FormSchemaConfig = {
     instructions: 'Lengkapi formulir pendaftaran siswa, data orang tua/wali, serta info pengajian dengan benar.',
     requiredDocs: [...UNIT_CONFIGS.SDIT.requiredDocs],
     fields: [],
+    requiredFields: getDefaultRequiredFields('SDIT'),
   },
   SMP: {
     unit: 'SMP',
@@ -231,6 +407,7 @@ export const DEFAULT_FORM_CONFIG: FormSchemaConfig = {
     instructions: 'Lengkapi formulir pendaftaran siswa, data orang tua/wali, serta info pengajian dengan benar.',
     requiredDocs: [...UNIT_CONFIGS.SMP.requiredDocs],
     fields: [],
+    requiredFields: getDefaultRequiredFields('SMP'),
   },
   SMA: {
     unit: 'SMA',
@@ -240,6 +417,7 @@ export const DEFAULT_FORM_CONFIG: FormSchemaConfig = {
     instructions: 'Lengkapi formulir pendaftaran siswa, data orang tua/wali, serta info pengajian dengan benar.',
     requiredDocs: [...UNIT_CONFIGS.SMA.requiredDocs],
     fields: [],
+    requiredFields: getDefaultRequiredFields('SMA'),
   },
 };
 
@@ -342,15 +520,15 @@ export function normalizeRegistrationInput(raw: Partial<RegistrationInput> & { u
     unit: raw.unit,
     namaLengkap: (raw.namaLengkap || '').trim(),
     namaPanggilan: (raw.namaPanggilan || '').trim(),
-    agama: (raw.agama || 'ISLAM').trim(),
+    agama: (raw.agama ?? 'ISLAM').trim(),
     tempatLahir: (raw.tempatLahir || '').trim(),
     tanggalLahir: (raw.tanggalLahir || '').trim(),
     jenisKelamin: raw.jenisKelamin === 'Perempuan' ? 'Perempuan' : 'Laki-laki',
     nisn: (raw.nisn || raw.unitData?.nisn || '').trim(),
     nik: (raw.nik || '').trim(),
     noKk: (raw.noKk || '').trim(),
-    anakKe: (raw.anakKe || '1').trim(),
-    jumlahSaudara: (raw.jumlahSaudara || '1').trim(),
+    anakKe: (raw.anakKe ?? '1').trim(),
+    jumlahSaudara: (raw.jumlahSaudara ?? '1').trim(),
     pasFotoDataUrl: isValidImageDataUrl(raw.pasFotoDataUrl) ? raw.pasFotoDataUrl!.trim() : '',
 
     asalSekolah: (
@@ -361,7 +539,7 @@ export function normalizeRegistrationInput(raw: Partial<RegistrationInput> & { u
       ''
     ).trim(),
     jenisPrestasi: (raw.jenisPrestasi ?? raw.unitData?.prestasiAkademik ?? '').trim(),
-    golDarah: (raw.golDarah || 'Tidak Tahu').trim(),
+    golDarah: (raw.golDarah ?? 'Tidak Tahu').trim(),
     tinggiBadan: (raw.tinggiBadan || '').trim(),
     beratBadan: (raw.beratBadan || '').trim(),
     alergi: (raw.alergi ?? raw.unitData?.alergiMakanan ?? '').trim(),
@@ -381,8 +559,8 @@ export function normalizeRegistrationInput(raw: Partial<RegistrationInput> & { u
     nikAyah: (raw.nikAyah || '').trim(),
     statusAyah: raw.statusAyah === 'Sudah Meninggal' ? 'Sudah Meninggal' : 'Masih Hidup',
     pekerjaanAyah: (raw.pekerjaanAyah || '').trim(),
-    pendidikanAyah: (raw.pendidikanAyah || 'SMA / SMK sederajat').trim(),
-    penghasilanAyah: (raw.penghasilanAyah || 'Rp.1.000.000 - Rp.2.000.000').trim(),
+    pendidikanAyah: (raw.pendidikanAyah ?? 'SMA / SMK sederajat').trim(),
+    penghasilanAyah: (raw.penghasilanAyah ?? 'Rp.1.000.000 - Rp.2.000.000').trim(),
     noHpAyah,
     emailAyah: (raw.emailAyah || '').trim(),
 
@@ -392,8 +570,8 @@ export function normalizeRegistrationInput(raw: Partial<RegistrationInput> & { u
     nikIbu: (raw.nikIbu || '').trim(),
     statusIbu: raw.statusIbu === 'Sudah Meninggal' ? 'Sudah Meninggal' : 'Masih Hidup',
     pekerjaanIbu: (raw.pekerjaanIbu || '').trim(),
-    pendidikanIbu: (raw.pendidikanIbu || 'SMA / SMK sederajat').trim(),
-    penghasilanIbu: (raw.penghasilanIbu || 'Tidak Berpenghasilan').trim(),
+    pendidikanIbu: (raw.pendidikanIbu ?? 'SMA / SMK sederajat').trim(),
+    penghasilanIbu: (raw.penghasilanIbu ?? 'Tidak Berpenghasilan').trim(),
     noHpIbu,
     emailIbu: (raw.emailIbu || '').trim(),
 
@@ -558,25 +736,28 @@ export function validateRegistrationInput(
   options?: { requirePhoto?: boolean }
 ): ValidationErrors {
   const errors: ValidationErrors = {};
-  const requirePhoto = options?.requirePhoto ?? true;
+  const activeConfig = unitConfig || DEFAULT_FORM_CONFIG[input.unit];
+  const req = (key: StandardFormFieldKey) =>
+    isStandardFieldRequired(input.unit, key, activeConfig);
+  const requirePhoto = (options?.requirePhoto ?? true) && req('pasFotoDataUrl');
 
   if (!input.namaLengkap.trim() || input.namaLengkap.trim().length < 2) {
     errors.namaLengkap = 'Nama lengkap calon murid wajib diisi minimal 2 huruf.';
   }
 
-  if (!input.namaPanggilan.trim()) {
+  if (req('namaPanggilan') && !input.namaPanggilan.trim()) {
     errors.namaPanggilan = 'Nama panggilan wajib diisi.';
   }
 
-  if (!input.agama.trim()) {
+  if (req('agama') && !input.agama.trim()) {
     errors.agama = 'Agama wajib dipilih.';
   }
 
-  if (!input.tempatLahir.trim()) {
+  if (req('tempatLahir') && !input.tempatLahir.trim()) {
     errors.tempatLahir = 'Tempat lahir wajib diisi.';
   }
 
-  if (!input.tanggalLahir.trim()) {
+  if (req('tanggalLahir') && !input.tanggalLahir.trim()) {
     errors.tanggalLahir = 'Tanggal lahir wajib diisi.';
   }
 
@@ -585,37 +766,51 @@ export function validateRegistrationInput(
   }
 
   const cleanNisn = input.nisn.replace(/\s+/g, '');
-  if (input.unit === 'RA_TK') {
-    if (cleanNisn && !/^\d{10}$/.test(cleanNisn)) {
-      errors.nisn = 'NISN harus terdiri dari 10 digit angka.';
+  if (req('nisn')) {
+    if (!/^\d{10}$/.test(cleanNisn)) {
+      errors.nisn = 'NISN wajib diisi tepat 10 digit angka.';
     }
-  } else if (!/^\d{10}$/.test(cleanNisn)) {
-    errors.nisn = 'NISN wajib diisi tepat 10 digit angka.';
+  } else if (cleanNisn && !/^\d{10}$/.test(cleanNisn)) {
+    errors.nisn = 'NISN harus terdiri dari 10 digit angka.';
   }
 
   const cleanNik = input.nik.replace(/\s+/g, '');
-  if (!/^\d{16}$/.test(cleanNik)) {
-    errors.nik = 'NIK wajib diisi tepat 16 digit angka.';
+  if (req('nik')) {
+    if (!/^\d{16}$/.test(cleanNik)) {
+      errors.nik = 'NIK wajib diisi tepat 16 digit angka.';
+    }
+  } else if (cleanNik && !/^\d{16}$/.test(cleanNik)) {
+    errors.nik = 'NIK harus terdiri dari 16 digit angka.';
   }
 
   const cleanKk = input.noKk.replace(/\s+/g, '');
-  if (!/^\d{16}$/.test(cleanKk)) {
-    errors.noKk = 'No. KK wajib diisi tepat 16 digit angka.';
+  if (req('noKk')) {
+    if (!/^\d{16}$/.test(cleanKk)) {
+      errors.noKk = 'No. KK wajib diisi tepat 16 digit angka.';
+    }
+  } else if (cleanKk && !/^\d{16}$/.test(cleanKk)) {
+    errors.noKk = 'No. KK harus terdiri dari 16 digit angka.';
   }
 
-  if (!input.anakKe.trim() || Number.isNaN(Number(input.anakKe)) || Number(input.anakKe) < 1) {
-    errors.anakKe = 'Anak ke- wajib diisi angka minimal 1.';
+  const cleanAnakKe = input.anakKe.trim();
+  if (req('anakKe')) {
+    if (!cleanAnakKe || Number.isNaN(Number(cleanAnakKe)) || Number(cleanAnakKe) < 1) {
+      errors.anakKe = 'Anak ke- wajib diisi angka minimal 1.';
+    }
+  } else if (cleanAnakKe && (Number.isNaN(Number(cleanAnakKe)) || Number(cleanAnakKe) < 1)) {
+    errors.anakKe = 'Anak ke- harus berupa angka minimal 1.';
   }
 
-  if (
-    !input.jumlahSaudara.trim() ||
-    Number.isNaN(Number(input.jumlahSaudara)) ||
-    Number(input.jumlahSaudara) < 0
-  ) {
-    errors.jumlahSaudara = 'Jumlah saudara kandung wajib diisi angka.';
+  const cleanSaudara = input.jumlahSaudara.trim();
+  if (req('jumlahSaudara')) {
+    if (!cleanSaudara || Number.isNaN(Number(cleanSaudara)) || Number(cleanSaudara) < 0) {
+      errors.jumlahSaudara = 'Jumlah saudara kandung wajib diisi angka.';
+    }
+  } else if (cleanSaudara && (Number.isNaN(Number(cleanSaudara)) || Number(cleanSaudara) < 0)) {
+    errors.jumlahSaudara = 'Jumlah saudara kandung harus berupa angka.';
   }
 
-  if (!input.jalurPendaftaran.trim()) {
+  if (req('jalurPendaftaran') && !input.jalurPendaftaran.trim()) {
     errors.jalurPendaftaran = 'Jalur pendaftaran wajib dipilih.';
   }
 
@@ -624,194 +819,223 @@ export function validateRegistrationInput(
   }
 
   // Riwayat Siswa
-  if (!input.asalSekolah.trim()) {
+  if (req('asalSekolah') && !input.asalSekolah.trim()) {
     errors.asalSekolah = 'Asal sekolah wajib diisi (tulis "-" jika belum sekolah).';
   }
 
-  if (!input.jenisPrestasi.trim()) {
+  if (req('jenisPrestasi') && !input.jenisPrestasi.trim()) {
     errors.jenisPrestasi = 'Jenis prestasi wajib diisi (tulis "-" jika belum ada).';
   }
 
-  if (!input.golDarah.trim()) {
+  if (req('golDarah') && !input.golDarah.trim()) {
     errors.golDarah = 'Golongan darah wajib dipilih.';
   }
 
-  if (
-    !input.tinggiBadan.trim() ||
-    Number.isNaN(Number(input.tinggiBadan)) ||
-    Number(input.tinggiBadan) <= 0
-  ) {
-    errors.tinggiBadan = 'Tinggi badan (cm) wajib diisi angka.';
+  const cleanTinggi = input.tinggiBadan.trim();
+  if (req('tinggiBadan')) {
+    if (!cleanTinggi || Number.isNaN(Number(cleanTinggi)) || Number(cleanTinggi) <= 0) {
+      errors.tinggiBadan = 'Tinggi badan (cm) wajib diisi angka.';
+    }
+  } else if (cleanTinggi && (Number.isNaN(Number(cleanTinggi)) || Number(cleanTinggi) <= 0)) {
+    errors.tinggiBadan = 'Tinggi badan (cm) harus berupa angka positif.';
   }
 
-  if (
-    !input.beratBadan.trim() ||
-    Number.isNaN(Number(input.beratBadan)) ||
-    Number(input.beratBadan) <= 0
-  ) {
-    errors.beratBadan = 'Berat badan (kg) wajib diisi angka.';
+  const cleanBerat = input.beratBadan.trim();
+  if (req('beratBadan')) {
+    if (!cleanBerat || Number.isNaN(Number(cleanBerat)) || Number(cleanBerat) <= 0) {
+      errors.beratBadan = 'Berat badan (kg) wajib diisi angka.';
+    }
+  } else if (cleanBerat && (Number.isNaN(Number(cleanBerat)) || Number(cleanBerat) <= 0)) {
+    errors.beratBadan = 'Berat badan (kg) harus berupa angka positif.';
   }
 
-  if (!input.alergi.trim()) {
+  if (req('alergi') && !input.alergi.trim()) {
     errors.alergi = 'Alergi wajib diisi (tulis "-" jika tidak ada).';
   }
 
   // Alamat Lengkap Siswa
-  if (!input.alamatJalan.trim()) {
+  if (req('alamatJalan') && !input.alamatJalan.trim()) {
     errors.alamatJalan = 'Jalan / dusun / perumahan wajib diisi.';
   }
 
-  if (!input.alamatRt.trim()) {
+  if (req('alamatRt') && !input.alamatRt.trim()) {
     errors.alamatRt = 'RT siswa wajib diisi.';
   }
 
-  if (!input.alamatRw.trim()) {
+  if (req('alamatRw') && !input.alamatRw.trim()) {
     errors.alamatRw = 'RW siswa wajib diisi.';
   }
 
-  if (!input.alamatDesa.trim()) {
+  if (req('alamatDesa') && !input.alamatDesa.trim()) {
     errors.alamatDesa = 'Desa/Kelurahan wajib diisi.';
   }
 
-  if (!input.alamatKecamatan.trim()) {
+  if (req('alamatKecamatan') && !input.alamatKecamatan.trim()) {
     errors.alamatKecamatan = 'Kecamatan wajib diisi.';
   }
 
-  if (!input.alamatKota.trim()) {
+  if (req('alamatKota') && !input.alamatKota.trim()) {
     errors.alamatKota = 'Kota/Kabupaten wajib diisi.';
   }
 
-  if (!input.alamatProvinsi.trim()) {
+  if (req('alamatProvinsi') && !input.alamatProvinsi.trim()) {
     errors.alamatProvinsi = 'Provinsi wajib diisi.';
   }
 
   // Data Ayah / Wali
-  if (!input.namaAyah.trim()) {
+  if (req('namaAyah') && !input.namaAyah.trim()) {
     errors.namaAyah = 'Nama Ayah / Wali wajib diisi.';
   }
 
-  if (!input.tempatLahirAyah.trim()) {
+  if (req('tempatLahirAyah') && !input.tempatLahirAyah.trim()) {
     errors.tempatLahirAyah = 'Tempat lahir ayah wajib diisi.';
   }
 
-  if (!input.tanggalLahirAyah.trim()) {
+  if (req('tanggalLahirAyah') && !input.tanggalLahirAyah.trim()) {
     errors.tanggalLahirAyah = 'Tanggal lahir ayah wajib diisi.';
   }
 
-  if (!/^\d{16}$/.test(input.nikAyah.replace(/\s+/g, ''))) {
-    errors.nikAyah = 'NIK Ayah wajib diisi tepat 16 digit angka.';
+  const cleanNikAyah = input.nikAyah.replace(/\s+/g, '');
+  if (req('nikAyah')) {
+    if (!/^\d{16}$/.test(cleanNikAyah)) {
+      errors.nikAyah = 'NIK Ayah wajib diisi tepat 16 digit angka.';
+    }
+  } else if (cleanNikAyah && !/^\d{16}$/.test(cleanNikAyah)) {
+    errors.nikAyah = 'NIK Ayah harus terdiri dari 16 digit angka.';
   }
 
-  if (!input.statusAyah.trim()) {
+  if (req('statusAyah') && !input.statusAyah.trim()) {
     errors.statusAyah = 'Status ayah wajib dipilih.';
   }
 
-  if (!input.pekerjaanAyah.trim()) {
+  if (req('pekerjaanAyah') && !input.pekerjaanAyah.trim()) {
     errors.pekerjaanAyah = 'Pekerjaan ayah wajib diisi.';
   }
 
-  if (!input.pendidikanAyah.trim()) {
+  if (req('pendidikanAyah') && !input.pendidikanAyah.trim()) {
     errors.pendidikanAyah = 'Pendidikan terakhir ayah wajib dipilih.';
   }
 
-  if (!input.penghasilanAyah.trim()) {
+  if (req('penghasilanAyah') && !input.penghasilanAyah.trim()) {
     errors.penghasilanAyah = 'Penghasilan ayah wajib dipilih.';
   }
 
   const cleanHpAyah = normalizeWhatsapp(input.noHpAyah);
-  if (!/^(\+?62|0)8\d{7,12}$/.test(cleanHpAyah)) {
-    errors.noHpAyah = 'No. HP / WhatsApp ayah wajib diisi dengan nomor aktif yang valid.';
+  if (req('noHpAyah')) {
+    if (!/^(\+?62|0)8\d{7,12}$/.test(cleanHpAyah)) {
+      errors.noHpAyah = 'No. HP / WhatsApp ayah wajib diisi dengan nomor aktif yang valid.';
+    }
+  } else if (cleanHpAyah && !/^(\+?62|0)8\d{7,12}$/.test(cleanHpAyah)) {
+    errors.noHpAyah = 'Format No. HP / WhatsApp ayah tidak valid.';
   }
 
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.emailAyah.trim())) {
-    errors.emailAyah = 'Alamat email ayah wajib diisi dengan format yang valid.';
+  const cleanEmailAyah = input.emailAyah.trim();
+  if (req('emailAyah')) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmailAyah)) {
+      errors.emailAyah = 'Alamat email ayah wajib diisi dengan format yang valid.';
+    }
+  } else if (cleanEmailAyah && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmailAyah)) {
+    errors.emailAyah = 'Format alamat email ayah tidak valid.';
   }
 
   // Data Ibu / Wali
-  if (!input.namaIbu.trim()) {
+  if (req('namaIbu') && !input.namaIbu.trim()) {
     errors.namaIbu = 'Nama Ibu / Wali wajib diisi.';
   }
 
-  if (!input.tempatLahirIbu.trim()) {
+  if (req('tempatLahirIbu') && !input.tempatLahirIbu.trim()) {
     errors.tempatLahirIbu = 'Tempat lahir ibu wajib diisi.';
   }
 
-  if (!input.tanggalLahirIbu.trim()) {
+  if (req('tanggalLahirIbu') && !input.tanggalLahirIbu.trim()) {
     errors.tanggalLahirIbu = 'Tanggal lahir ibu wajib diisi.';
   }
 
-  if (!/^\d{16}$/.test(input.nikIbu.replace(/\s+/g, ''))) {
-    errors.nikIbu = 'NIK Ibu wajib diisi tepat 16 digit angka.';
+  const cleanNikIbu = input.nikIbu.replace(/\s+/g, '');
+  if (req('nikIbu')) {
+    if (!/^\d{16}$/.test(cleanNikIbu)) {
+      errors.nikIbu = 'NIK Ibu wajib diisi tepat 16 digit angka.';
+    }
+  } else if (cleanNikIbu && !/^\d{16}$/.test(cleanNikIbu)) {
+    errors.nikIbu = 'NIK Ibu harus terdiri dari 16 digit angka.';
   }
 
-  if (!input.statusIbu.trim()) {
+  if (req('statusIbu') && !input.statusIbu.trim()) {
     errors.statusIbu = 'Status ibu wajib dipilih.';
   }
 
-  if (!input.pekerjaanIbu.trim()) {
+  if (req('pekerjaanIbu') && !input.pekerjaanIbu.trim()) {
     errors.pekerjaanIbu = 'Pekerjaan ibu wajib diisi.';
   }
 
-  if (!input.pendidikanIbu.trim()) {
+  if (req('pendidikanIbu') && !input.pendidikanIbu.trim()) {
     errors.pendidikanIbu = 'Pendidikan terakhir ibu wajib dipilih.';
   }
 
-  if (!input.penghasilanIbu.trim()) {
+  if (req('penghasilanIbu') && !input.penghasilanIbu.trim()) {
     errors.penghasilanIbu = 'Penghasilan ibu wajib dipilih.';
   }
 
   const cleanHpIbu = normalizeWhatsapp(input.noHpIbu);
-  if (!/^(\+?62|0)8\d{7,12}$/.test(cleanHpIbu)) {
-    errors.noHpIbu = 'No. HP ibu wajib diisi dengan nomor aktif yang valid.';
+  if (req('noHpIbu')) {
+    if (!/^(\+?62|0)8\d{7,12}$/.test(cleanHpIbu)) {
+      errors.noHpIbu = 'No. HP ibu wajib diisi dengan nomor aktif yang valid.';
+    }
+  } else if (cleanHpIbu && !/^(\+?62|0)8\d{7,12}$/.test(cleanHpIbu)) {
+    errors.noHpIbu = 'Format No. HP ibu tidak valid.';
   }
 
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.emailIbu.trim())) {
-    errors.emailIbu = 'Alamat email ibu wajib diisi dengan format yang valid.';
+  const cleanEmailIbu = input.emailIbu.trim();
+  if (req('emailIbu')) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmailIbu)) {
+      errors.emailIbu = 'Alamat email ibu wajib diisi dengan format yang valid.';
+    }
+  } else if (cleanEmailIbu && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmailIbu)) {
+    errors.emailIbu = 'Format alamat email ibu tidak valid.';
   }
 
   // Alamat Lengkap Orang Tua / Wali
-  if (!input.alamatOrtuJalan.trim()) {
+  if (req('alamatOrtuJalan') && !input.alamatOrtuJalan.trim()) {
     errors.alamatOrtuJalan = 'Jalan alamat orang tua/wali wajib diisi.';
   }
 
-  if (!input.alamatOrtuRt.trim()) {
+  if (req('alamatOrtuRt') && !input.alamatOrtuRt.trim()) {
     errors.alamatOrtuRt = 'RT alamat orang tua/wali wajib diisi.';
   }
 
-  if (!input.alamatOrtuRw.trim()) {
+  if (req('alamatOrtuRw') && !input.alamatOrtuRw.trim()) {
     errors.alamatOrtuRw = 'RW alamat orang tua/wali wajib diisi.';
   }
 
-  if (!input.alamatOrtuDesa.trim()) {
+  if (req('alamatOrtuDesa') && !input.alamatOrtuDesa.trim()) {
     errors.alamatOrtuDesa = 'Desa/Kelurahan alamat orang tua/wali wajib diisi.';
   }
 
-  if (!input.alamatOrtuKecamatan.trim()) {
+  if (req('alamatOrtuKecamatan') && !input.alamatOrtuKecamatan.trim()) {
     errors.alamatOrtuKecamatan = 'Kecamatan alamat orang tua/wali wajib diisi.';
   }
 
-  if (!input.alamatOrtuKota.trim()) {
+  if (req('alamatOrtuKota') && !input.alamatOrtuKota.trim()) {
     errors.alamatOrtuKota = 'Kota/Kabupaten alamat orang tua/wali wajib diisi.';
   }
 
-  if (!input.alamatOrtuProvinsi.trim()) {
+  if (req('alamatOrtuProvinsi') && !input.alamatOrtuProvinsi.trim()) {
     errors.alamatOrtuProvinsi = 'Provinsi alamat orang tua/wali wajib diisi.';
   }
 
   // Info Pengajian
-  if (!input.pengajianDaerah.trim()) {
+  if (req('pengajianDaerah') && !input.pengajianDaerah.trim()) {
     errors.pengajianDaerah = 'Daerah pengajian wajib diisi.';
   }
 
-  if (!input.pengajianDesa.trim()) {
+  if (req('pengajianDesa') && !input.pengajianDesa.trim()) {
     errors.pengajianDesa = 'Desa pengajian wajib diisi.';
   }
 
-  if (!input.pengajianKelompok.trim()) {
+  if (req('pengajianKelompok') && !input.pengajianKelompok.trim()) {
     errors.pengajianKelompok = 'Kelompok pengajian wajib diisi (tulis "-" jika belum ada).';
   }
 
-  const activeConfig = unitConfig || DEFAULT_FORM_CONFIG[input.unit];
   const ud = input.unitData || {};
 
   for (const field of activeConfig.fields) {
@@ -1768,6 +1992,7 @@ export function normalizeFormSchemaConfig(
           ? incoming.requiredDocs
           : base[unit].requiredDocs,
         fields: Array.isArray(incoming.fields) ? incoming.fields : base[unit].fields,
+        requiredFields: resolveUnitRequiredFields(unit, incoming),
       };
       if (!isGenderSplitQuotaUnit(unit)) {
         delete base[unit].quotaPutra;

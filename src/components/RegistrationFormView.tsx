@@ -7,6 +7,7 @@ import type {
   ParentLifeStatus,
   RegistrationInput,
   RegistrationRecord,
+  StandardFormFieldKey,
   UnitId,
   UnitStat,
   ValidationErrors,
@@ -18,6 +19,7 @@ import {
   getUnitLogoPath,
   GOL_DARAH_OPTIONS,
   isGenderSplitQuotaUnit,
+  isStandardFieldRequired,
   normalizeRegistrationInput,
   PENDIDIKAN_OPTIONS,
   PENGHASILAN_OPTIONS,
@@ -94,6 +96,14 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
 
   const unitCfg = UNIT_CONFIGS[form.unit];
   const currentUnitSchema = formConfig[form.unit];
+  const isReq = (key: StandardFormFieldKey): boolean =>
+    isStandardFieldRequired(form.unit, key, currentUnitSchema);
+  const reqMark = (key: StandardFormFieldKey) =>
+    isReq(key) ? (
+      <span className="text-red-600">*</span>
+    ) : (
+      <span className="text-[#4E5651] font-normal">(Opsional)</span>
+    );
 
   const updateField = <K extends keyof RegistrationInput>(
     field: K,
@@ -226,8 +236,14 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
     setSubmitError('');
 
     const normalized = normalizeRegistrationInput(form);
+    const photoRequiredByAdmin = isStandardFieldRequired(
+      normalized.unit,
+      'pasFotoDataUrl',
+      currentUnitSchema
+    );
     const validation = validateRegistrationInput(normalized, currentUnitSchema, {
-      requirePhoto: !editingRecord || Boolean(editingRecord.pasFotoDataUrl),
+      requirePhoto:
+        photoRequiredByAdmin && (!editingRecord || Boolean(editingRecord.pasFotoDataUrl)),
     });
     if (Object.keys(validation).length > 0) {
       setErrors(validation);
@@ -298,9 +314,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
             <p className="text-sm text-[#4E5651]">
               {currentUnitSchema.instructions || unitCfg.tagline}{' '}
               <span className="font-medium text-[#111815]">
-                {form.unit === 'RA_TK'
-                  ? 'Seluruh kolom wajib diisi, kecuali NISN (opsional khusus pendaftar RA/TK).'
-                  : 'Seluruh kolom bertanda * wajib diisi lengkap.'}
+                Kolom bertanda * wajib diisi lengkap; kolom bertanda (Opsional) boleh dikosongkan.
               </span>
             </p>
             {isGenderSplitQuotaUnit(form.unit) && (() => {
@@ -367,9 +381,8 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
               <div>
                 <p className="text-xs font-semibold text-[#111815]">
                   Upload Pas Foto Calon Murid (3×4){' '}
-                  {(!editingRecord || Boolean(editingRecord.pasFotoDataUrl)) && (
-                    <span className="text-red-600">*</span>
-                  )}
+                  {(!editingRecord || Boolean(editingRecord.pasFotoDataUrl)) &&
+                    reqMark('pasFotoDataUrl')}
                 </p>
                 <p className="text-xs text-[#4E5651] mt-0.5 leading-relaxed">
                   Gunakan foto formal berlatar polos (JPG, PNG, atau WebP). Sistem otomatis
@@ -420,7 +433,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="sm:col-span-2">
               <label htmlFor="namaLengkap" className="block text-xs font-semibold text-[#111815] mb-1">
-                Nama Lengkap <span className="text-red-600">*</span>
+                Nama Lengkap {reqMark('namaLengkap')}
               </label>
               <input
                 id="namaLengkap"
@@ -437,7 +450,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
 
             <div>
               <label htmlFor="namaPanggilan" className="block text-xs font-semibold text-[#111815] mb-1">
-                Nama Panggilan <span className="text-red-600">*</span>
+                Nama Panggilan {reqMark('namaPanggilan')}
               </label>
               <input
                 id="namaPanggilan"
@@ -454,7 +467,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
 
             <div>
               <label htmlFor="agama" className="block text-xs font-semibold text-[#111815] mb-1">
-                Agama <span className="text-red-600">*</span>
+                Agama {reqMark('agama')}
               </label>
               <select
                 id="agama"
@@ -462,6 +475,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
                 onChange={(e) => updateField('agama', e.target.value)}
                 className={inputClass('agama')}
               >
+                {!isReq('agama') && <option value="">-- Tidak Diisi (Opsional) --</option>}
                 {AGAMA_OPTIONS.map((ag) => (
                   <option key={ag} value={ag}>
                     {ag}
@@ -472,7 +486,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
 
             <div>
               <label htmlFor="tempatLahir" className="block text-xs font-semibold text-[#111815] mb-1">
-                Tempat Lahir <span className="text-red-600">*</span>
+                Tempat Lahir {reqMark('tempatLahir')}
               </label>
               <input
                 id="tempatLahir"
@@ -489,7 +503,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
 
             <div>
               <label htmlFor="tanggalLahir" className="block text-xs font-semibold text-[#111815] mb-1">
-                Tanggal Lahir <span className="text-red-600">*</span>
+                Tanggal Lahir {reqMark('tanggalLahir')}
               </label>
               <input
                 id="tanggalLahir"
@@ -505,7 +519,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
 
             <div>
               <label htmlFor="jenisKelamin" className="block text-xs font-semibold text-[#111815] mb-1">
-                Jenis Kelamin <span className="text-red-600">*</span>
+                Jenis Kelamin {reqMark('jenisKelamin')}
               </label>
               <select
                 id="jenisKelamin"
@@ -536,12 +550,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
 
             <div>
               <label htmlFor="nisn" className="block text-xs font-semibold text-[#111815] mb-1">
-                NISN (10 Digit){' '}
-                {form.unit === 'RA_TK' ? (
-                  <span className="text-[#4E5651] font-normal">(Opsional khusus RA/TK)</span>
-                ) : (
-                  <span className="text-red-600">*</span>
-                )}
+                NISN (10 Digit) {reqMark('nisn')}
               </label>
               <input
                 id="nisn"
@@ -550,7 +559,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
                 maxLength={10}
                 value={form.nisn}
                 onChange={(e) => updateField('nisn', e.target.value.replace(/\D/g, ''))}
-                placeholder={form.unit === 'RA_TK' ? 'Kosongkan jika belum ada' : '10 digit NISN'}
+                placeholder={isReq('nisn') ? '10 digit NISN' : 'Kosongkan jika belum ada'}
                 className={`${inputClass('nisn')} font-mono`}
               />
               {errors.nisn && <p className="mt-1 text-xs text-red-600">{errors.nisn}</p>}
@@ -558,7 +567,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
 
             <div>
               <label htmlFor="nik" className="block text-xs font-semibold text-[#111815] mb-1">
-                NIK (16 Digit) <span className="text-red-600">*</span>
+                NIK (16 Digit) {reqMark('nik')}
               </label>
               <input
                 id="nik"
@@ -575,7 +584,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
 
             <div>
               <label htmlFor="noKk" className="block text-xs font-semibold text-[#111815] mb-1">
-                No. KK (16 Digit) <span className="text-red-600">*</span>
+                No. KK (16 Digit) {reqMark('noKk')}
               </label>
               <input
                 id="noKk"
@@ -593,7 +602,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label htmlFor="anakKe" className="block text-xs font-semibold text-[#111815] mb-1">
-                  Anak Ke <span className="text-red-600">*</span>
+                  Anak Ke {reqMark('anakKe')}
                 </label>
                 <input
                   id="anakKe"
@@ -611,7 +620,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
                   htmlFor="jumlahSaudara"
                   className="block text-xs font-semibold text-[#111815] mb-1"
                 >
-                  Jml Saudara <span className="text-red-600">*</span>
+                  Jml Saudara {reqMark('jumlahSaudara')}
                 </label>
                 <input
                   id="jumlahSaudara"
@@ -632,7 +641,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
                 htmlFor="jalurPendaftaran"
                 className="block text-xs font-semibold text-[#111815] mb-1"
               >
-                Jalur Pendaftaran <span className="text-red-600">*</span>
+                Jalur Pendaftaran {reqMark('jalurPendaftaran')}
               </label>
               <select
                 id="jalurPendaftaran"
@@ -660,7 +669,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
 
               <div>
                 <label htmlFor="asalSekolah" className="block text-xs font-semibold text-[#111815] mb-1">
-                  Asal Sekolah <span className="text-red-600">*</span>
+                  Asal Sekolah {reqMark('asalSekolah')}
                 </label>
                 <input
                   id="asalSekolah"
@@ -677,7 +686,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
 
               <div>
                 <label htmlFor="jenisPrestasi" className="block text-xs font-semibold text-[#111815] mb-1">
-                  Jenis Prestasi Yang Pernah Di Raih <span className="text-red-600">*</span>
+                  Jenis Prestasi Yang Pernah Di Raih {reqMark('jenisPrestasi')}
                 </label>
                 <input
                   id="jenisPrestasi"
@@ -695,7 +704,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                 <div>
                   <label htmlFor="golDarah" className="block text-xs font-semibold text-[#111815] mb-1">
-                    Gol Darah <span className="text-red-600">*</span>
+                    Gol Darah {reqMark('golDarah')}
                   </label>
                   <select
                     id="golDarah"
@@ -703,6 +712,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
                     onChange={(e) => updateField('golDarah', e.target.value)}
                     className={inputClass('golDarah')}
                   >
+                    {!isReq('golDarah') && <option value="">-- Tidak Diisi (Opsional) --</option>}
                     {GOL_DARAH_OPTIONS.map((g) => (
                       <option key={g} value={g}>
                         {g}
@@ -713,7 +723,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
 
                 <div>
                   <label htmlFor="tinggiBadan" className="block text-xs font-semibold text-[#111815] mb-1">
-                    Tinggi (cm) <span className="text-red-600">*</span>
+                    Tinggi (cm) {reqMark('tinggiBadan')}
                   </label>
                   <input
                     id="tinggiBadan"
@@ -731,7 +741,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
 
                 <div>
                   <label htmlFor="beratBadan" className="block text-xs font-semibold text-[#111815] mb-1">
-                    Berat (kg) <span className="text-red-600">*</span>
+                    Berat (kg) {reqMark('beratBadan')}
                   </label>
                   <input
                     id="beratBadan"
@@ -750,7 +760,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
 
               <div>
                 <label htmlFor="alergi" className="block text-xs font-semibold text-[#111815] mb-1">
-                  Alergi <span className="text-red-600">*</span>
+                  Alergi {reqMark('alergi')}
                 </label>
                 <input
                   id="alergi"
@@ -772,7 +782,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
 
               <div>
                 <label htmlFor="alamatJalan" className="block text-xs font-semibold text-[#111815] mb-1">
-                  Jalan / Dusun / Perumahan <span className="text-red-600">*</span>
+                  Jalan / Dusun / Perumahan {reqMark('alamatJalan')}
                 </label>
                 <input
                   id="alamatJalan"
@@ -790,7 +800,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label htmlFor="alamatRt" className="block text-xs font-semibold text-[#111815] mb-1">
-                    RT <span className="text-red-600">*</span>
+                    RT {reqMark('alamatRt')}
                   </label>
                   <input
                     id="alamatRt"
@@ -806,7 +816,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
                 </div>
                 <div>
                   <label htmlFor="alamatRw" className="block text-xs font-semibold text-[#111815] mb-1">
-                    RW <span className="text-red-600">*</span>
+                    RW {reqMark('alamatRw')}
                   </label>
                   <input
                     id="alamatRw"
@@ -825,7 +835,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
                   <label htmlFor="alamatDesa" className="block text-xs font-semibold text-[#111815] mb-1">
-                    Desa / Kelurahan <span className="text-red-600">*</span>
+                    Desa / Kelurahan {reqMark('alamatDesa')}
                   </label>
                   <input
                     id="alamatDesa"
@@ -845,7 +855,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
                     htmlFor="alamatKecamatan"
                     className="block text-xs font-semibold text-[#111815] mb-1"
                   >
-                    Kecamatan <span className="text-red-600">*</span>
+                    Kecamatan {reqMark('alamatKecamatan')}
                   </label>
                   <input
                     id="alamatKecamatan"
@@ -864,7 +874,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
                   <label htmlFor="alamatKota" className="block text-xs font-semibold text-[#111815] mb-1">
-                    Kota / Kabupaten <span className="text-red-600">*</span>
+                    Kota / Kabupaten {reqMark('alamatKota')}
                   </label>
                   <input
                     id="alamatKota"
@@ -884,7 +894,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
                     htmlFor="alamatProvinsi"
                     className="block text-xs font-semibold text-[#111815] mb-1"
                   >
-                    Provinsi <span className="text-red-600">*</span>
+                    Provinsi {reqMark('alamatProvinsi')}
                   </label>
                   <input
                     id="alamatProvinsi"
@@ -922,7 +932,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
 
               <div>
                 <label htmlFor="namaAyah" className="block text-xs font-semibold text-[#111815] mb-1">
-                  Nama Ayah / Wali <span className="text-red-600">*</span>
+                  Nama Ayah / Wali {reqMark('namaAyah')}
                 </label>
                 <input
                   id="namaAyah"
@@ -941,7 +951,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
                     htmlFor="tempatLahirAyah"
                     className="block text-xs font-semibold text-[#111815] mb-1"
                   >
-                    Tempat Lahir Ayah <span className="text-red-600">*</span>
+                    Tempat Lahir Ayah {reqMark('tempatLahirAyah')}
                   </label>
                   <input
                     id="tempatLahirAyah"
@@ -960,7 +970,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
                     htmlFor="tanggalLahirAyah"
                     className="block text-xs font-semibold text-[#111815] mb-1"
                   >
-                    Tanggal Lahir Ayah <span className="text-red-600">*</span>
+                    Tanggal Lahir Ayah {reqMark('tanggalLahirAyah')}
                   </label>
                   <input
                     id="tanggalLahirAyah"
@@ -978,7 +988,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
                   <label htmlFor="nikAyah" className="block text-xs font-semibold text-[#111815] mb-1">
-                    NIK Ayah <span className="text-red-600">*</span>
+                    NIK Ayah {reqMark('nikAyah')}
                   </label>
                   <input
                     id="nikAyah"
@@ -995,7 +1005,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
 
                 <div>
                   <label htmlFor="statusAyah" className="block text-xs font-semibold text-[#111815] mb-1">
-                    Status <span className="text-red-600">*</span>
+                    Status {reqMark('statusAyah')}
                   </label>
                   <select
                     id="statusAyah"
@@ -1015,7 +1025,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
                     htmlFor="pekerjaanAyah"
                     className="block text-xs font-semibold text-[#111815] mb-1"
                   >
-                    Pekerjaan Ayah <span className="text-red-600">*</span>
+                    Pekerjaan Ayah {reqMark('pekerjaanAyah')}
                   </label>
                   <input
                     id="pekerjaanAyah"
@@ -1035,7 +1045,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
                     htmlFor="pendidikanAyah"
                     className="block text-xs font-semibold text-[#111815] mb-1"
                   >
-                    Pendidikan Terakhir Ayah <span className="text-red-600">*</span>
+                    Pendidikan Terakhir Ayah {reqMark('pendidikanAyah')}
                   </label>
                   <select
                     id="pendidikanAyah"
@@ -1043,6 +1053,9 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
                     onChange={(e) => updateField('pendidikanAyah', e.target.value)}
                     className={inputClass('pendidikanAyah')}
                   >
+                    {!isReq('pendidikanAyah') && (
+                      <option value="">-- Tidak Diisi (Opsional) --</option>
+                    )}
                     {PENDIDIKAN_OPTIONS.map((p) => (
                       <option key={p} value={p}>
                         {p}
@@ -1057,7 +1070,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
                   htmlFor="penghasilanAyah"
                   className="block text-xs font-semibold text-[#111815] mb-1"
                 >
-                  Penghasilan Ayah <span className="text-red-600">*</span>
+                  Penghasilan Ayah {reqMark('penghasilanAyah')}
                 </label>
                 <select
                   id="penghasilanAyah"
@@ -1065,6 +1078,9 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
                   onChange={(e) => updateField('penghasilanAyah', e.target.value)}
                   className={inputClass('penghasilanAyah')}
                 >
+                  {!isReq('penghasilanAyah') && (
+                    <option value="">-- Tidak Diisi (Opsional) --</option>
+                  )}
                   {PENGHASILAN_OPTIONS.map((p) => (
                     <option key={p} value={p}>
                       {p}
@@ -1076,7 +1092,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
                   <label htmlFor="noHpAyah" className="block text-xs font-semibold text-[#111815] mb-1">
-                    No. HP / WA Ayah <span className="text-red-600">*</span>
+                    No. HP / WA Ayah {reqMark('noHpAyah')}
                   </label>
                   <input
                     id="noHpAyah"
@@ -1093,7 +1109,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
 
                 <div>
                   <label htmlFor="emailAyah" className="block text-xs font-semibold text-[#111815] mb-1">
-                    Alamat Email Ayah <span className="text-red-600">*</span>
+                    Alamat Email Ayah {reqMark('emailAyah')}
                   </label>
                   <input
                     id="emailAyah"
@@ -1118,7 +1134,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
 
               <div>
                 <label htmlFor="namaIbu" className="block text-xs font-semibold text-[#111815] mb-1">
-                  Nama Ibu / Wali <span className="text-red-600">*</span>
+                  Nama Ibu / Wali {reqMark('namaIbu')}
                 </label>
                 <input
                   id="namaIbu"
@@ -1137,7 +1153,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
                     htmlFor="tempatLahirIbu"
                     className="block text-xs font-semibold text-[#111815] mb-1"
                   >
-                    Tempat Lahir Ibu <span className="text-red-600">*</span>
+                    Tempat Lahir Ibu {reqMark('tempatLahirIbu')}
                   </label>
                   <input
                     id="tempatLahirIbu"
@@ -1156,7 +1172,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
                     htmlFor="tanggalLahirIbu"
                     className="block text-xs font-semibold text-[#111815] mb-1"
                   >
-                    Tanggal Lahir Ibu <span className="text-red-600">*</span>
+                    Tanggal Lahir Ibu {reqMark('tanggalLahirIbu')}
                   </label>
                   <input
                     id="tanggalLahirIbu"
@@ -1174,7 +1190,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
                   <label htmlFor="nikIbu" className="block text-xs font-semibold text-[#111815] mb-1">
-                    NIK Ibu <span className="text-red-600">*</span>
+                    NIK Ibu {reqMark('nikIbu')}
                   </label>
                   <input
                     id="nikIbu"
@@ -1191,7 +1207,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
 
                 <div>
                   <label htmlFor="statusIbu" className="block text-xs font-semibold text-[#111815] mb-1">
-                    Status <span className="text-red-600">*</span>
+                    Status {reqMark('statusIbu')}
                   </label>
                   <select
                     id="statusIbu"
@@ -1211,7 +1227,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
                     htmlFor="pekerjaanIbu"
                     className="block text-xs font-semibold text-[#111815] mb-1"
                   >
-                    Pekerjaan Ibu <span className="text-red-600">*</span>
+                    Pekerjaan Ibu {reqMark('pekerjaanIbu')}
                   </label>
                   <input
                     id="pekerjaanIbu"
@@ -1231,7 +1247,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
                     htmlFor="pendidikanIbu"
                     className="block text-xs font-semibold text-[#111815] mb-1"
                   >
-                    Pendidikan Terakhir Ibu <span className="text-red-600">*</span>
+                    Pendidikan Terakhir Ibu {reqMark('pendidikanIbu')}
                   </label>
                   <select
                     id="pendidikanIbu"
@@ -1239,6 +1255,9 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
                     onChange={(e) => updateField('pendidikanIbu', e.target.value)}
                     className={inputClass('pendidikanIbu')}
                   >
+                    {!isReq('pendidikanIbu') && (
+                      <option value="">-- Tidak Diisi (Opsional) --</option>
+                    )}
                     {PENDIDIKAN_OPTIONS.map((p) => (
                       <option key={p} value={p}>
                         {p}
@@ -1253,7 +1272,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
                   htmlFor="penghasilanIbu"
                   className="block text-xs font-semibold text-[#111815] mb-1"
                 >
-                  Penghasilan Ibu <span className="text-red-600">*</span>
+                  Penghasilan Ibu {reqMark('penghasilanIbu')}
                 </label>
                 <select
                   id="penghasilanIbu"
@@ -1261,6 +1280,9 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
                   onChange={(e) => updateField('penghasilanIbu', e.target.value)}
                   className={inputClass('penghasilanIbu')}
                 >
+                  {!isReq('penghasilanIbu') && (
+                    <option value="">-- Tidak Diisi (Opsional) --</option>
+                  )}
                   {PENGHASILAN_OPTIONS.map((p) => (
                     <option key={p} value={p}>
                       {p}
@@ -1272,7 +1294,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
                   <label htmlFor="noHpIbu" className="block text-xs font-semibold text-[#111815] mb-1">
-                    No. HP Ibu <span className="text-red-600">*</span>
+                    No. HP Ibu {reqMark('noHpIbu')}
                   </label>
                   <input
                     id="noHpIbu"
@@ -1289,7 +1311,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
 
                 <div>
                   <label htmlFor="emailIbu" className="block text-xs font-semibold text-[#111815] mb-1">
-                    Alamat Email Ibu <span className="text-red-600">*</span>
+                    Alamat Email Ibu {reqMark('emailIbu')}
                   </label>
                   <input
                     id="emailIbu"
@@ -1346,7 +1368,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
                   htmlFor="alamatOrtuJalan"
                   className="block text-xs font-semibold text-[#111815] mb-1"
                 >
-                  Jalan <span className="text-red-600">*</span>
+                  Jalan {reqMark('alamatOrtuJalan')}
                 </label>
                 <input
                   id="alamatOrtuJalan"
@@ -1366,7 +1388,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
 
               <div>
                 <label htmlFor="alamatOrtuRt" className="block text-xs font-semibold text-[#111815] mb-1">
-                  RT <span className="text-red-600">*</span>
+                  RT {reqMark('alamatOrtuRt')}
                 </label>
                 <input
                   id="alamatOrtuRt"
@@ -1386,7 +1408,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
 
               <div>
                 <label htmlFor="alamatOrtuRw" className="block text-xs font-semibold text-[#111815] mb-1">
-                  RW <span className="text-red-600">*</span>
+                  RW {reqMark('alamatOrtuRw')}
                 </label>
                 <input
                   id="alamatOrtuRw"
@@ -1409,7 +1431,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
                   htmlFor="alamatOrtuDesa"
                   className="block text-xs font-semibold text-[#111815] mb-1"
                 >
-                  Desa / Kelurahan <span className="text-red-600">*</span>
+                  Desa / Kelurahan {reqMark('alamatOrtuDesa')}
                 </label>
                 <input
                   id="alamatOrtuDesa"
@@ -1432,7 +1454,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
                   htmlFor="alamatOrtuKecamatan"
                   className="block text-xs font-semibold text-[#111815] mb-1"
                 >
-                  Kecamatan <span className="text-red-600">*</span>
+                  Kecamatan {reqMark('alamatOrtuKecamatan')}
                 </label>
                 <input
                   id="alamatOrtuKecamatan"
@@ -1455,7 +1477,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
                   htmlFor="alamatOrtuKota"
                   className="block text-xs font-semibold text-[#111815] mb-1"
                 >
-                  Kota / Kabupaten <span className="text-red-600">*</span>
+                  Kota / Kabupaten {reqMark('alamatOrtuKota')}
                 </label>
                 <input
                   id="alamatOrtuKota"
@@ -1478,7 +1500,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
                   htmlFor="alamatOrtuProvinsi"
                   className="block text-xs font-semibold text-[#111815] mb-1"
                 >
-                  Provinsi <span className="text-red-600">*</span>
+                  Provinsi {reqMark('alamatOrtuProvinsi')}
                 </label>
                 <input
                   id="alamatOrtuProvinsi"
@@ -1515,7 +1537,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
                 htmlFor="pengajianDaerah"
                 className="block text-xs font-semibold text-[#111815] mb-1"
               >
-                Daerah <span className="text-red-600">*</span>
+                Daerah {reqMark('pengajianDaerah')}
               </label>
               <input
                 id="pengajianDaerah"
@@ -1535,7 +1557,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
                 htmlFor="pengajianDesa"
                 className="block text-xs font-semibold text-[#111815] mb-1"
               >
-                Desa <span className="text-red-600">*</span>
+                Desa {reqMark('pengajianDesa')}
               </label>
               <input
                 id="pengajianDesa"
@@ -1555,7 +1577,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
                 htmlFor="pengajianKelompok"
                 className="block text-xs font-semibold text-[#111815] mb-1"
               >
-                Kelompok <span className="text-red-600">*</span>
+                Kelompok {reqMark('pengajianKelompok')}
               </label>
               <input
                 id="pengajianKelompok"
@@ -1599,7 +1621,11 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
                       className="block text-xs font-semibold text-[#111815] mb-1"
                     >
                       {field.label}{' '}
-                      {field.required && <span className="text-red-600">*</span>}
+                      {field.required ? (
+                        <span className="text-red-600">*</span>
+                      ) : (
+                        <span className="text-[#4E5651] font-normal">(Opsional)</span>
+                      )}
                     </label>
 
                     {field.type === 'select' ? (
