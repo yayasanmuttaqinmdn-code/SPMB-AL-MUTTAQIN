@@ -6,6 +6,7 @@ import { RegistrationFormView } from './components/RegistrationFormView.tsx';
 import { ReceiptPreviewView } from './components/ReceiptPreviewView.tsx';
 import { LookupReceiptView } from './components/LookupReceiptView.tsx';
 import { DashboardView } from './components/DashboardView.tsx';
+import { FeeInfoView } from './components/FeeInfoView.tsx';
 import { AdminPanelView } from './components/AdminPanelView.tsx';
 import { ConfirmationModal } from './components/ConfirmationModal.tsx';
 import type {
@@ -2036,6 +2037,15 @@ export default function App() {
             onEnterUnitForm={handleEnterUnitForm}
             onOpenDashboard={() => setActiveTab('dashboard')}
             onOpenLookup={() => setActiveTab('lookup')}
+            onOpenFees={() => setActiveTab('fees')}
+          />
+        ) : activeTab === 'fees' ? (
+          <FeeInfoView
+            onRegisterForUnit={(unit) => {
+              setSelectedUnit(unit);
+              setEditingRecord(null);
+              setActiveTab('form');
+            }}
           />
         ) : activeTab === 'form' ? (
           (() => {
@@ -2167,6 +2177,13 @@ export default function App() {
               className="hover:text-[#14532D]"
             >
               Portal Masuk
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('fees')}
+              className="hover:text-[#14532D]"
+            >
+              Informasi Biaya
             </button>
             <button
               type="button"

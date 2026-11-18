@@ -14,12 +14,17 @@ import {
   createEmptyRegistrationInput,
   createPrimarySheetsConfig,
   DEFAULT_FORM_CONFIG,
+  FEE_CATEGORY_ORDER,
+  FEE_SCHEDULES,
+  computeFeeTotals,
   findOwnRegistration,
   findRegistrationsByName,
+  formatRupiah,
   FOUNDATION_LOGO_PATH,
   generateRegistrationNumber,
   getDefaultRequiredFields,
   getUnitLogoPath,
+  OFFICIAL_FEE_PDF_PATH,
   isGenderSplitQuotaUnit,
   isStandardFieldRequired,
   isValidAppsScriptExecUrl,
@@ -1037,4 +1042,31 @@ test('Admin can toggle standard registration fields between required and optiona
   assert.ok(formatErrs.emailAyah);
   assert.ok(formatErrs.noHpAyah);
 });
+
+test('FEE_SCHEDULES match official BIAYA_PPDB_2027 PDF totals for all 6 categories (Putra & Putri)', () => {
+  assert.equal(OFFICIAL_FEE_PDF_PATH, '/assets/aistudio/BIAYA_PPDB_2027_4d726d4e.pdf');
+  assert.deepEqual(FEE_CATEGORY_ORDER, ['PP', 'SMA', 'SMP', 'SDIT', 'RA', 'KB']);
+
+  const expectedTotals: Record<(typeof FEE_CATEGORY_ORDER)[number], { putra: number; putri: number }> = {
+    PP: { putra: 485000, putri: 485000 },
+    SMA: { putra: 3695000, putri: 3725000 },
+    SMP: { putra: 2670000, putri: 2695000 },
+    SDIT: { putra: 1055000, putri: 1175000 },
+    RA: { putra: 820000, putri: 880000 },
+    KB: { putra: 670000, putri: 670000 },
+  };
+
+  for (const id of FEE_CATEGORY_ORDER) {
+    const group = FEE_SCHEDULES[id];
+    const computed = computeFeeTotals(group.items);
+    assert.equal(group.totalPutra, expectedTotals[id].putra, `${id} totalPutra mismatch`);
+    assert.equal(group.totalPutri, expectedTotals[id].putri, `${id} totalPutri mismatch`);
+    assert.equal(computed.putra, expectedTotals[id].putra, `${id} line-item Putra sum mismatch`);
+    assert.equal(computed.putri, expectedTotals[id].putri, `${id} line-item Putri sum mismatch`);
+  }
+
+  assert.equal(formatRupiah(3695000), 'Rp 3.695.000');
+  assert.equal(formatRupiah(null), '-');
+});
+
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowRight, BookOpen, FileSearch } from 'lucide-react';
+import { ArrowRight, BookOpen, FileSearch, Wallet } from 'lucide-react';
 import type { DashboardStats, UnitId } from '../types/spmb.ts';
 import {
   ACADEMIC_YEAR,
@@ -17,6 +17,7 @@ interface PortalLoginViewProps {
   onEnterUnitForm: (unit: UnitId) => void;
   onOpenDashboard: () => void;
   onOpenLookup: () => void;
+  onOpenFees?: () => void;
 }
 
 export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
@@ -24,6 +25,7 @@ export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
   onEnterUnitForm,
   onOpenDashboard,
   onOpenLookup,
+  onOpenFees,
 }) => {
   const [heroImgError, setHeroImgError] = useState(false);
   const [crestImgError, setCrestImgError] = useState(false);
@@ -89,6 +91,16 @@ export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
               <FileSearch className="w-4 h-4" />
               <span>Cek Status Pendaftaran</span>
             </button>
+            {onOpenFees && (
+              <button
+                type="button"
+                onClick={onOpenFees}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-[#926C15] bg-white border border-[#D4D9D4] hover:border-[#926C15] rounded-lg transition-colors whitespace-nowrap"
+              >
+                <Wallet className="w-4 h-4" />
+                <span>Informasi Biaya</span>
+              </button>
+            )}
           </div>
         </div>
 

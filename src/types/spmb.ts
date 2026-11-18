@@ -256,3 +256,25 @@ export interface SheetsPublicConfig {
 export interface ValidationErrors {
   [field: string]: string;
 }
+
+export type FeeCategoryId = 'PP' | 'SMA' | 'SMP' | 'SDIT' | 'RA' | 'KB';
+
+export interface FeeLineItem {
+  no: number;
+  label: string;
+  putra: number | null;
+  putri: number | null;
+}
+
+export interface FeeScheduleGroup {
+  id: FeeCategoryId;
+  shortName: string;
+  title: string;
+  subtitle: string;
+  registerUnit?: UnitId;
+  totalLabel: string;
+  totalPutra: number;
+  totalPutri: number;
+  items: FeeLineItem[];
+}
+

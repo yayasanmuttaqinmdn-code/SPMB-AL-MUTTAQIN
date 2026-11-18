@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Menu, X } from 'lucide-react';
 import { FOUNDATION_LOGO_PATH } from '../utils/spmbLogic.ts';
 
-export type ActiveTab = 'login' | 'form' | 'receipt' | 'dashboard' | 'lookup' | 'admin';
+export type ActiveTab = 'login' | 'form' | 'receipt' | 'dashboard' | 'lookup' | 'fees' | 'admin';
 
 interface TopBarProps {
   activeTab: ActiveTab;
@@ -15,6 +15,7 @@ export const TopBar: React.FC<TopBarProps> = ({ activeTab, isAdmin, onNavigate }
 
   const navItems: Array<{ id: ActiveTab; label: string }> = [
     { id: 'login', label: 'Portal Masuk' },
+    { id: 'fees', label: 'Informasi Biaya' },
     { id: 'dashboard', label: 'Dashboard' },
     { id: 'lookup', label: 'Cek Status' },
     { id: 'admin', label: isAdmin ? 'Menu Admin' : 'Admin' },

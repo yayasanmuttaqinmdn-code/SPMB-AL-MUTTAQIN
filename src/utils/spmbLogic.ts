@@ -1,5 +1,8 @@
 import type {
   DashboardStats,
+  FeeCategoryId,
+  FeeLineItem,
+  FeeScheduleGroup,
   FormSchemaConfig,
   RegistrationInput,
   RegistrationRecord,
@@ -2248,4 +2251,170 @@ export function buildCloudShareUrl(
   }
   return `${cleanOrigin}/?${params.toString()}`;
 }
+
+export const OFFICIAL_FEE_PDF_PATH = '/assets/aistudio/BIAYA_PPDB_2027_4d726d4e.pdf';
+export const FEE_ACADEMIC_YEAR = '2027/2028';
+
+export const FEE_CATEGORY_ORDER: FeeCategoryId[] = ['PP', 'SMA', 'SMP', 'SDIT', 'RA', 'KB'];
+
+export const FEE_SCHEDULES: Record<FeeCategoryId, FeeScheduleGroup> = {
+  PP: {
+    id: 'PP',
+    shortName: 'PP',
+    title: 'Pondok Pesantren (PP)',
+    subtitle: 'Rincian biaya santri Pondok Pesantren Muttaqin Josenan Madiun',
+    totalLabel: 'TOTAL BIAYA',
+    totalPutra: 485000,
+    totalPutri: 485000,
+    items: [
+      { no: 1, label: 'Seragam Almamater', putra: 100000, putri: 100000 },
+      { no: 2, label: 'Kartu santri', putra: 30000, putri: 30000 },
+      { no: 3, label: 'Biaya Pondok', putra: 300000, putri: 300000 },
+      { no: 4, label: 'Shodaqoh Kesehatan', putra: 30000, putri: 30000 },
+      { no: 5, label: 'Shodaqoh Perawatan Sarpras', putra: 25000, putri: 25000 },
+    ],
+  },
+  SMA: {
+    id: 'SMA',
+    shortName: 'SMA',
+    title: 'SMA Al Muttaqin',
+    subtitle: 'Biaya Pendidikan Peserta Didik Baru SMA Muttaqin Josenan',
+    registerUnit: 'SMA',
+    totalLabel: 'TOTAL BIAYA PENDIDIKAN',
+    totalPutra: 3695000,
+    totalPutri: 3725000,
+    items: [
+      { no: 1, label: 'Seragam Almamater', putra: 180000, putri: 180000 },
+      { no: 2, label: 'Seragam Batik', putra: 210000, putri: 215000 },
+      { no: 3, label: 'Seragam Osis', putra: 170000, putri: 170000 },
+      { no: 4, label: 'Seragam Pramuka', putra: 170000, putri: 170000 },
+      { no: 5, label: 'Seragam Olahraga', putra: 200000, putri: 200000 },
+      { no: 6, label: 'Seragam Double Track', putra: 110000, putri: 110000 },
+      { no: 7, label: 'Atribut Sekolah (Topi, dasi, badge, lokasi)', putra: 135000, putri: 120000 },
+      { no: 8, label: 'Jilbab', putra: null, putri: 160000 },
+      { no: 9, label: 'Kartu pelajar', putra: 30000, putri: 30000 },
+      { no: 10, label: 'LKS 1 Tahun', putra: 300000, putri: 300000 },
+      { no: 11, label: 'Foto Raport', putra: 15000, putri: 15000 },
+      { no: 12, label: 'Pengembangan Potensi Siswa', putra: 200000, putri: 200000 },
+      { no: 13, label: 'Loker', putra: 305000, putri: 305000 },
+      { no: 14, label: 'Cukur', putra: 120000, putri: null },
+      { no: 15, label: 'Biaya Pondok & SPP Bulan Juli', putra: 600000, putri: 600000 },
+      { no: 16, label: 'Persinas', putra: 100000, putri: 100000 },
+      { no: 17, label: 'English Camp', putra: 500000, putri: 500000 },
+      { no: 18, label: 'Perpustakaan & Media Pembelajaran', putra: 75000, putri: 75000 },
+      { no: 19, label: 'Perawatan Peralatan DT', putra: 50000, putri: 50000 },
+      { no: 20, label: 'Shodaqoh kesehatan', putra: 100000, putri: 100000 },
+      { no: 21, label: 'Shodaqoh Perawatan Sarpras', putra: 125000, putri: 125000 },
+    ],
+  },
+  SMP: {
+    id: 'SMP',
+    shortName: 'SMP',
+    title: 'SMP Al Muttaqin',
+    subtitle: 'Biaya Pendidikan Peserta Didik Baru SMP Muttaqin Josenan',
+    registerUnit: 'SMP',
+    totalLabel: 'TOTAL BIAYA PENDIDIKAN',
+    totalPutra: 2670000,
+    totalPutri: 2695000,
+    items: [
+      { no: 1, label: 'Seragam Batik', putra: 170000, putri: 170000 },
+      { no: 2, label: 'Seragam Osis', putra: 170000, putri: 170000 },
+      { no: 3, label: 'Seragam Pramuka', putra: 170000, putri: 170000 },
+      { no: 4, label: 'Seragam Olahraga', putra: 170000, putri: 170000 },
+      { no: 5, label: 'Atribut Sekolah (Topi, dasi, badge, lokasi)', putra: 135000, putri: 120000 },
+      { no: 6, label: 'Jilbab', putra: null, putri: 160000 },
+      { no: 7, label: 'Kartu pelajar', putra: 30000, putri: 30000 },
+      { no: 8, label: 'LKS', putra: 180000, putri: 180000 },
+      { no: 9, label: 'Foto & Sampul Raport', putra: 50000, putri: 50000 },
+      { no: 10, label: 'Pengembangan Potensi Siswa', putra: 200000, putri: 200000 },
+      { no: 11, label: 'Loker', putra: 325000, putri: 325000 },
+      { no: 12, label: 'Cukur', putra: 120000, putri: null },
+      { no: 13, label: 'Biaya Pondok & SPP Bulan Juli', putra: 550000, putri: 550000 },
+      { no: 14, label: 'Persinas', putra: 100000, putri: 100000 },
+      { no: 15, label: 'Perpustakaan & Media Pembelajaran', putra: 75000, putri: 75000 },
+      { no: 16, label: 'Shodaqoh kesehatan', putra: 100000, putri: 100000 },
+      { no: 17, label: 'Shodaqoh Perawatan Sarpras', putra: 125000, putri: 125000 },
+    ],
+  },
+  SDIT: {
+    id: 'SDIT',
+    shortName: 'SDIT',
+    title: 'SDIT Al Muttaqin',
+    subtitle: 'Biaya Pendidikan Peserta Didik Baru SDIT Muttaqin Josenan',
+    registerUnit: 'SDIT',
+    totalLabel: 'TOTAL BIAYA PENDIDIKAN',
+    totalPutra: 1055000,
+    totalPutri: 1175000,
+    items: [
+      { no: 1, label: 'Seragam Batik', putra: 150000, putri: 150000 },
+      { no: 2, label: 'Seragam Merah', putra: 150000, putri: 150000 },
+      { no: 3, label: 'Seragam Pramuka', putra: 150000, putri: 150000 },
+      { no: 4, label: 'Seragam Olahraga', putra: 100000, putri: 100000 },
+      { no: 5, label: 'Atribut Sekolah (Topi, dasi, badge, lokasi, dll)', putra: 120000, putri: 120000 },
+      { no: 6, label: 'Jilbab', putra: null, putri: 120000 },
+      { no: 7, label: 'Kartu pelajar', putra: 30000, putri: 30000 },
+      { no: 8, label: 'LKS 1 Semester', putra: 40000, putri: 40000 },
+      { no: 9, label: 'Perpustakaan & Media Pembelajaran', putra: 50000, putri: 50000 },
+      { no: 10, label: 'Kegiatan MPLS', putra: 50000, putri: 50000 },
+      { no: 11, label: 'Foto Raport', putra: 15000, putri: 15000 },
+      { no: 12, label: 'SPP Bulan Juli', putra: 100000, putri: 100000 },
+      { no: 13, label: 'Pengembangan Potensi Siswa', putra: 100000, putri: 100000 },
+    ],
+  },
+  RA: {
+    id: 'RA',
+    shortName: 'RA',
+    title: 'RA (Raudhatul Athfal)',
+    subtitle: 'Biaya Pendidikan Peserta Didik Baru RA Al Muttaqin Josenan',
+    registerUnit: 'RA_TK',
+    totalLabel: 'TOTAL BIAYA PENDIDIKAN',
+    totalPutra: 820000,
+    totalPutri: 880000,
+    items: [
+      { no: 1, label: 'Biaya Pendaftaran', putra: 25000, putri: 25000 },
+      { no: 2, label: 'Seragam 3 stel', putra: 400000, putri: 400000 },
+      { no: 3, label: 'Jilbab', putra: null, putri: 60000 },
+      { no: 4, label: 'Majalah 1 Tahun', putra: 100000, putri: 100000 },
+      { no: 5, label: 'Sampul Raport', putra: 35000, putri: 35000 },
+      { no: 6, label: 'SPP Bulan Juli', putra: 60000, putri: 60000 },
+      { no: 7, label: 'Pengembangan Potensi Siswa', putra: 200000, putri: 200000 },
+    ],
+  },
+  KB: {
+    id: 'KB',
+    shortName: 'KB',
+    title: 'KB (Kelompok Bermain)',
+    subtitle: 'Biaya Pendidikan Peserta Didik Baru Kelompok Bermain Al Muttaqin',
+    registerUnit: 'RA_TK',
+    totalLabel: 'TOTAL BIAYA PENDIDIKAN',
+    totalPutra: 670000,
+    totalPutri: 670000,
+    items: [
+      { no: 1, label: 'Biaya Pendaftaran', putra: 25000, putri: 25000 },
+      { no: 2, label: 'Seragam 3 stel', putra: null, putri: null },
+      { no: 3, label: 'Jilbab', putra: null, putri: null },
+      { no: 4, label: 'Media', putra: 100000, putri: 100000 },
+      { no: 5, label: 'Sampul Raport', putra: 35000, putri: 35000 },
+      { no: 6, label: 'SPP Bulan Juli', putra: 60000, putri: 60000 },
+      { no: 7, label: 'Pengembangan Potensi Siswa', putra: 450000, putri: 450000 },
+    ],
+  },
+};
+
+export function computeFeeTotals(items: FeeLineItem[]): { putra: number; putri: number } {
+  return items.reduce(
+    (acc, item) => ({
+      putra: acc.putra + (item.putra ?? 0),
+      putri: acc.putri + (item.putri ?? 0),
+    }),
+    { putra: 0, putri: 0 }
+  );
+}
+
+export function formatRupiah(amount: number | null | undefined, withPrefix = true): string {
+  if (amount === null || amount === undefined) return '-';
+  const formatted = new Intl.NumberFormat('id-ID').format(amount);
+  return withPrefix ? `Rp ${formatted}` : formatted;
+}
+
 
