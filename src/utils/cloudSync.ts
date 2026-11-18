@@ -18,6 +18,7 @@ import {
   normalizeRegistrationInput,
   normalizeRegistrationRecord,
   normalizeSheetsConfig,
+  parseCloudShareParams,
   parsePulledSpreadsheetData,
   registrationToSheetRow,
   searchRegistrationsForStatus,
@@ -423,6 +424,66 @@ export function setStoredCloudAdminToken(token: string | null): void {
   }
 }
 
+export function bootstrapCloudConfigFromUrl(): SheetsPublicConfig | null {
+  if (typeof window === 'undefined') return null;
+  const parsed = parseCloudShareParams(window.location.search);
+  if (!parsed) return null;
+
+  const existing = loadLocalCloudSheetsConfig();
+  const saved = saveLocalCloudSheetsConfig({
+    ...existing,
+    syncMode: 'unified',
+    appsScriptUrl: parsed.appsScriptUrl,
+    spreadsheetId: parsed.spreadsheetId || existing.spreadsheetId,
+  });
+
+  try {
+    const cleanUrl = new URL(window.location.href);
+    cleanUrl.searchParams.delete('cloud');
+    cleanUrl.searchParams.delete('sheet');
+    const cleanSearch = cleanUrl.searchParams.toString();
+    const nextHref = `${cleanUrl.pathname}${cleanSearch ? `?${cleanSearch}` : ''}${cleanUrl.hash}`;
+    window.history.replaceState({}, document.title, nextHref);
+  } catch {
+    // Ignore history API restrictions
+  }
+  return saved;
+}
+
+let cachedRuntimeCloudConfigPromise: Promise<{
+  appsScriptUrl: string;
+  spreadsheetId: string;
+} | null> | null = null;
+
+export function fetchRuntimeCloudConfig(): Promise<{
+  appsScriptUrl: string;
+  spreadsheetId: string;
+} | null> {
+  if (!cachedRuntimeCloudConfigPromise) {
+    cachedRuntimeCloudConfigPromise = (async () => {
+      try {
+        const res = await fetch('/api/cloud-config', { cache: 'no-store' });
+        const ct = (res.headers.get('content-type') || '').toLowerCase();
+        if (!res.ok || !ct.includes('application/json')) return null;
+        const data = (await res.json()) as {
+          configured?: boolean;
+          appsScriptUrl?: string;
+          spreadsheetId?: string;
+        };
+        const url = (data.appsScriptUrl || '').trim();
+        if (!url) return null;
+        return {
+          appsScriptUrl: url,
+          spreadsheetId: extractSpreadsheetIdShared(data.spreadsheetId || ''),
+        };
+      } catch {
+        return null;
+      }
+    })();
+  }
+  return cachedRuntimeCloudConfigPromise;
+}
+
 export function resolveEffectiveAppsScriptTarget(
   cfg: SheetsPublicConfig,
   unit?: UnitId
@@ -535,6 +596,9 @@ export async function fetchDirectPublicState(
   stats: DashboardStats;
   formConfig: FormSchemaConfig;
   lastSyncedAt: string | null;
+  spreadsheetId?: string;
+  spreadsheetTitle?: string;
+  spreadsheetUrl?: string;
 }> {
   const target = resolveEffectiveAppsScriptTarget(cfg);
   if (!target) {
@@ -591,6 +655,9 @@ export async function fetchDirectPublicState(
     stats,
     formConfig,
     lastSyncedAt: resp.syncedAt || cfg.lastSyncedAt,
+    spreadsheetId: resp.spreadsheetId,
+    spreadsheetTitle: resp.spreadsheetTitle,
+    spreadsheetUrl: resp.spreadsheetUrl,
   };
 }
 
@@ -686,7 +753,8 @@ export async function pullDirectFromAppsScript(
 
     const { mergedRecords, pulledFromRemote, pushedToRemote } = mergeRegistrationLists(
       localRecords,
-      allRemote
+      allRemote,
+      { dropMissingSynced: true }
     );
     nextConfig.lastSyncedAt = new Date().toISOString();
     return {
@@ -710,7 +778,8 @@ export async function pullDirectFromAppsScript(
   const parsed = parsePulledSpreadsheetData(resp.rowsByTab, resp.formConfig);
   const { mergedRecords, pulledFromRemote, pushedToRemote } = mergeRegistrationLists(
     localRecords,
-    parsed.registrations
+    parsed.registrations,
+    { dropMissingSynced: true }
   );
 
   if (resp.spreadsheetId) {

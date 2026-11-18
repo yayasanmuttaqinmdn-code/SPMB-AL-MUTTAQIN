@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  buildCloudShareUrl,
   buildRegistrationStatusSummary,
   classifyAlumniOrigin,
   classifyPengajianRegion,
@@ -17,10 +18,12 @@ import {
   FOUNDATION_LOGO_PATH,
   generateRegistrationNumber,
   getUnitLogoPath,
+  isValidAppsScriptExecUrl,
   mergeRegistrationLists,
   normalizeFormSchemaConfig,
   normalizeRegistrationInput,
   normalizeSheetsConfig,
+  parseCloudShareParams,
   parsePulledSpreadsheetData,
   registrationToSheetRow,
   resolveUnitWebhookDispatch,
@@ -753,6 +756,57 @@ test('official Foundation and per-unit logo paths map cleanly to uploaded assets
   assert.equal(getUnitLogoPath('SMA'), '/assets/aistudio/LOGO_SMA_AL_MUTTAQIN_58041682.jpg');
   assert.equal(Object.keys(UNIT_LOGO_PATHS).length, 4);
 });
+
+test('mergeRegistrationLists removes records deleted remotely when dropMissingSynced is enabled', () => {
+  const deletedRemotely = makeRecord({
+    id: 'deleted-1',
+    syncState: 'synced',
+  });
+  const pendingDraft = makeRecord({
+    id: 'pending-2',
+    syncState: 'pending',
+  });
+  const stillRemote = makeRecord({
+    id: 'kept-3',
+    syncState: 'synced',
+  });
+
+  const result = mergeRegistrationLists(
+    [deletedRemotely, pendingDraft, stillRemote],
+    [stillRemote],
+    { dropMissingSynced: true }
+  );
+
+  assert.deepEqual(
+    result.mergedRecords.map((r) => r.id).sort(),
+    ['kept-3', 'pending-2']
+  );
+});
+
+test('shareable cloud sync link validates Google Apps Script /exec URLs strictly and rejects unsafe URLs', () => {
+  const validExec =
+    'https://script.google.com/macros/s/AKfycbxTestScript12345/exec';
+  assert.equal(isValidAppsScriptExecUrl(validExec), true);
+  assert.equal(isValidAppsScriptExecUrl('https://evil.example.com/exec'), false);
+  assert.equal(isValidAppsScriptExecUrl('javascript:alert(1)'), false);
+
+  const sharedUrl = buildCloudShareUrl(
+    'https://spmb-muttaqin.vercel.app',
+    validExec,
+    'https://docs.google.com/spreadsheets/d/SHEET_ABC_123/edit'
+  );
+  assert.ok(sharedUrl.startsWith('https://spmb-muttaqin.vercel.app/?'));
+
+  const queryPart = sharedUrl.slice(sharedUrl.indexOf('?'));
+  const parsed = parseCloudShareParams(queryPart);
+  assert.deepEqual(parsed, {
+    appsScriptUrl: validExec,
+    spreadsheetId: 'SHEET_ABC_123',
+  });
+
+  assert.equal(parseCloudShareParams('?cloud=https://evil.example.com/exec'), null);
+});
+
 
 
 

@@ -1662,7 +1662,7 @@ export function normalizeFormSchemaConfig(
 export function mergeRegistrationLists(
   localRecords: RegistrationRecord[],
   remoteRecords: RegistrationRecord[],
-  options: { pushAllLocal?: boolean } = {}
+  options: { pushAllLocal?: boolean; dropMissingSynced?: boolean } = {}
 ): {
   mergedRecords: RegistrationRecord[];
   pulledFromRemote: number;
@@ -1685,6 +1685,9 @@ export function mergeRegistrationLists(
   for (const local of localMap.values()) {
     const remote = remoteMap.get(local.id);
     if (!remote) {
+      if (options.dropMissingSynced && local.syncState === 'synced') {
+        continue;
+      }
       mergedMap.set(local.id, { ...local, syncState: 'synced' });
       pushedToRemote += 1;
     } else {
@@ -1820,3 +1823,48 @@ export function computeStatsFromUnitCounts(
     updatedAt: updatedAt || new Date().toISOString(),
   };
 }
+
+export function isValidAppsScriptExecUrl(rawUrl: string): boolean {
+  const trimmed = (rawUrl || '').trim();
+  return /^https:\/\/script\.google\.com\/macros\/s\/[a-zA-Z0-9_-]+\/exec(?:\?.*)?$/i.test(trimmed);
+}
+
+export function parseCloudShareParams(search: string): {
+  appsScriptUrl: string;
+  spreadsheetId: string;
+} | null {
+  try {
+    const params = new URLSearchParams(search || '');
+    const rawCloud = (params.get('cloud') || '').trim();
+    if (!rawCloud || !isValidAppsScriptExecUrl(rawCloud)) {
+      return null;
+    }
+    const rawSheet = (params.get('sheet') || '').trim();
+    return {
+      appsScriptUrl: rawCloud,
+      spreadsheetId: extractSpreadsheetIdShared(rawSheet),
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function buildCloudShareUrl(
+  origin: string,
+  appsScriptUrl: string,
+  spreadsheetId?: string
+): string {
+  const cleanOrigin = (origin || '').replace(/\/+$/, '');
+  const cleanUrl = (appsScriptUrl || '').trim();
+  if (!cleanOrigin || !isValidAppsScriptExecUrl(cleanUrl)) {
+    return cleanOrigin;
+  }
+  const params = new URLSearchParams();
+  params.set('cloud', cleanUrl);
+  const cleanSheet = extractSpreadsheetIdShared(spreadsheetId || '');
+  if (cleanSheet) {
+    params.set('sheet', cleanSheet);
+  }
+  return `${cleanOrigin}/?${params.toString()}`;
+}
+

@@ -24,7 +24,13 @@ import type {
 } from '../types/spmb.ts';
 import { APPS_SCRIPT_SNIPPET, getEnvAppsScriptUrl } from '../utils/cloudSync.ts';
 import { preloadGisClient } from '../utils/firebaseAuth.ts';
-import { countConfiguredUnitTargets, UNIT_CONFIGS, UNIT_ORDER } from '../utils/spmbLogic.ts';
+import {
+  buildCloudShareUrl,
+  countConfiguredUnitTargets,
+  isValidAppsScriptExecUrl,
+  UNIT_CONFIGS,
+  UNIT_ORDER,
+} from '../utils/spmbLogic.ts';
 
 interface SheetsSyncViewProps {
   user: User | null;
@@ -37,6 +43,7 @@ interface SheetsSyncViewProps {
   syncMessage: string;
   syncError: string;
   sheetsConfig: SheetsPublicConfig;
+  hasGlobalCloudConfig?: boolean;
   stats: DashboardStats;
   onGoogleLogin: () => void;
   onDirectGoogleTokenLogin: () => void;
@@ -82,6 +89,7 @@ export const SheetsSyncView: React.FC<SheetsSyncViewProps> = ({
   syncMessage,
   syncError,
   sheetsConfig,
+  hasGlobalCloudConfig = false,
   stats,
   onGoogleLogin,
   onDirectGoogleTokenLogin,
@@ -118,6 +126,7 @@ export const SheetsSyncView: React.FC<SheetsSyncViewProps> = ({
   });
   const [copiedScript, setCopiedScript] = useState(false);
   const [copiedVercelEnv, setCopiedVercelEnv] = useState(false);
+  const [copiedShareLink, setCopiedShareLink] = useState(false);
   const [showScriptCode, setShowScriptCode] = useState(false);
 
   useEffect(() => {
@@ -224,10 +233,21 @@ export const SheetsSyncView: React.FC<SheetsSyncViewProps> = ({
     sheetsConfig.appsScriptUrl ||
     envAppsScriptUrl
   ).trim();
+  const isGlobalSynced = hasGlobalCloudConfig || Boolean(envAppsScriptUrl);
+  const hasShareableWebhook = isValidAppsScriptExecUrl(effectiveWebhookForVercel);
+  const shareableSyncUrl = hasShareableWebhook
+    ? buildCloudShareUrl(
+        publicUrl || 'https://portal-spmb.vercel.app',
+        effectiveWebhookForVercel,
+        sheetInput.trim() || sheetsConfig.spreadsheetId
+      )
+    : '';
 
   const vercelEnvSnippet = [
     `VITE_APPS_SCRIPT_URL=${effectiveWebhookForVercel || 'https://script.google.com/macros/s/ISI_URL_EXEC_ANDA/exec'}`,
-    sheetInput.trim() ? `VITE_SPREADSHEET_ID=${sheetInput.trim()}` : '',
+    sheetInput.trim() || sheetsConfig.spreadsheetId
+      ? `VITE_SPREADSHEET_ID=${sheetInput.trim() || sheetsConfig.spreadsheetId}`
+      : '',
     `VITE_ADMIN_PASSWORD=muttaqin2026`,
   ]
     .filter(Boolean)
@@ -238,6 +258,15 @@ export const SheetsSyncView: React.FC<SheetsSyncViewProps> = ({
     if (ok) {
       setCopiedVercelEnv(true);
       setTimeout(() => setCopiedVercelEnv(false), 2000);
+    }
+  };
+
+  const handleCopyShareSyncLink = async () => {
+    if (!shareableSyncUrl) return;
+    const ok = await copyTextSafely(shareableSyncUrl);
+    if (ok) {
+      setCopiedShareLink(true);
+      setTimeout(() => setCopiedShareLink(false), 2000);
     }
   };
 
@@ -399,16 +428,19 @@ export const SheetsSyncView: React.FC<SheetsSyncViewProps> = ({
             Mode Cloud Sync · Tanpa Firebase (Siap Vercel)
           </p>
           <p className="text-base font-bold text-[#111815]">
-            {sheetsConfig.appsScriptUrl ||
-            envAppsScriptUrl ||
-            UNIT_ORDER.some((u) => Boolean(sheetsConfig.unitTargets[u]?.appsScriptUrl))
-              ? 'Cloud Sync Aktif'
-              : 'Belum Dipasang'}
+            {isGlobalSynced
+              ? 'Aktif Global (Semua Perangkat)'
+              : sheetsConfig.appsScriptUrl ||
+                  UNIT_ORDER.some((u) => Boolean(sheetsConfig.unitTargets[u]?.appsScriptUrl))
+                ? 'Aktif di Browser Ini Saja'
+                : 'Belum Dipasang'}
           </p>
           <p className="text-xs text-[#4E5651]">
-            {envAppsScriptUrl
-              ? 'Terhubung otomatis lintas perangkat via VITE_APPS_SCRIPT_URL.'
-              : 'Sinkron 2 arah antar perangkat langsung via Google Spreadsheet.'}
+            {isGlobalSynced
+              ? 'Semua HP & laptop otomatis membaca Google Spreadsheet yang sama.'
+              : sheetsConfig.appsScriptUrl
+                ? 'Tambahkan Env Vercel lalu Redeploy (atau bagikan Link Tersinkron di bawah) agar semua HP sama.'
+                : 'Sinkron 2 arah antar perangkat langsung via Google Spreadsheet.'}
           </p>
         </div>
 
@@ -1175,27 +1207,50 @@ export const SheetsSyncView: React.FC<SheetsSyncViewProps> = ({
           </div>
 
           {/* Vercel Cross-Device Deployment Card */}
-          <div className="bg-white border border-[#E2E5E2] rounded-2xl p-4 sm:p-6 space-y-3">
+          <div className="bg-white border border-[#E2E5E2] rounded-2xl p-4 sm:p-6 space-y-3.5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-start sm:items-center gap-2 text-[#14532D]">
                 <Globe className="w-5 h-5 shrink-0 mt-0.5 sm:mt-0" />
                 <h2 className="font-display text-base font-bold text-[#111815]">
-                  Deploy di Vercel (Sinkron Semua Perangkat Tanpa Firebase)
+                  Samakan Data di Semua Perangkat (Vercel)
                 </h2>
               </div>
-              <button
-                type="button"
-                onClick={handleCopyVercelEnv}
-                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#14532D] bg-[#14532D]/10 hover:bg-[#14532D]/15 rounded-lg whitespace-nowrap self-start sm:self-auto shrink-0"
-              >
-                <Copy className="w-3.5 h-3.5" />
-                <span>{copiedVercelEnv ? 'Env Tersalin' : 'Salin Env Vercel'}</span>
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                {hasShareableWebhook && (
+                  <button
+                    type="button"
+                    onClick={handleCopyShareSyncLink}
+                    className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-[#14532D] hover:bg-[#114626] rounded-lg whitespace-nowrap"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>{copiedShareLink ? 'Link Tersalin' : 'Salin Link Tersinkron'}</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={handleCopyVercelEnv}
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#14532D] bg-[#14532D]/10 hover:bg-[#14532D]/15 rounded-lg whitespace-nowrap"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>{copiedVercelEnv ? 'Env Tersalin' : 'Salin Env Vercel'}</span>
+                </button>
+              </div>
             </div>
+
+            {!isGlobalSynced && (
+              <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 leading-relaxed">
+                <strong>Mengapa HP/laptop lain datanya masih berbeda?</strong>{' '}
+                Menyimpan URL Webhook di form atas hanya tersimpan di browser ini. Agar{' '}
+                <strong>semua perangkat otomatis sama</strong> saat membuka link Vercel utama,
+                masukkan variabel di bawah ke{' '}
+                <strong>Vercel → Settings → Environment Variables</strong> lalu klik{' '}
+                <strong>Redeploy</strong> (atau bagikan <em>Link Tersinkron</em> di atas).
+              </div>
+            )}
+
             <p className="text-xs text-[#4E5651] leading-relaxed">
-              Saat deploy di <strong>Vercel</strong> (<em>Settings → Environment Variables</em>),
-              tambahkan variabel berikut agar setiap HP orang tua dan laptop panitia otomatis
-              terhubung ke Google Spreadsheet yang sama secara real-time:
+              Isi variabel berikut di <strong>Vercel (Settings → Environment Variables)</strong>,
+              lalu klik <strong>Deployments → Redeploy</strong>:
             </p>
             <pre className="p-3 rounded-xl bg-[#F6F7F6] border border-[#E2E5E2] text-[11px] font-mono text-[#111815] overflow-x-auto leading-relaxed">
               {vercelEnvSnippet}

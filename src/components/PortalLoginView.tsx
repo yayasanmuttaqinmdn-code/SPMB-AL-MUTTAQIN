@@ -10,6 +10,7 @@ import {
   UNIT_CONFIGS,
   UNIT_ORDER,
 } from '../utils/spmbLogic.ts';
+import heroCampusImg from '../assets/images/hero_pesantren_campus_1794667124955.jpg';
 
 interface PortalLoginViewProps {
   stats: DashboardStats;
@@ -94,7 +95,7 @@ export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
         <div className="order-first lg:order-last lg:col-span-5 relative h-44 sm:h-56 lg:h-auto lg:min-h-[220px] bg-[#E7EAE7]">
           {!heroImgError ? (
             <img
-              src="/src/assets/images/hero_pesantren_campus_1794667124955.jpg"
+              src={heroCampusImg}
               alt="Kampus Yayasan Pondok Pesantren Muttaqin Josenan Madiun"
               referrerPolicy="no-referrer"
               onError={() => setHeroImgError(true)}

@@ -943,6 +943,25 @@ async function startServer() {
     });
   });
 
+  // Public runtime cloud sync configuration (matches api/cloud-config.ts on Vercel)
+  app.get('/api/cloud-config', (_req, res) => {
+    const appsScriptUrl = (
+      process.env.VITE_APPS_SCRIPT_URL ||
+      process.env.APPS_SCRIPT_URL ||
+      ''
+    ).trim();
+    const spreadsheetId = extractSpreadsheetIdServer(
+      process.env.VITE_SPREADSHEET_ID || process.env.SPREADSHEET_ID || ''
+    );
+    res.setHeader('Cache-Control', 'no-store, max-age=0');
+    res.json({
+      ok: true,
+      configured: Boolean(appsScriptUrl),
+      appsScriptUrl,
+      spreadsheetId,
+    });
+  });
+
   // Public read-only state (aggregate counts + form schema)
   app.get('/api/public/state', (_req, res) => {
     const db = readDb();

@@ -67,6 +67,7 @@ interface AdminPanelViewProps {
   syncMessage: string;
   syncError: string;
   sheetsConfig: SheetsPublicConfig;
+  hasGlobalCloudConfig?: boolean;
   onGoogleLogin: () => void;
   onDirectGoogleTokenLogin: () => void;
   onGoogleLogout: () => void;
@@ -127,6 +128,7 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
   syncMessage,
   syncError,
   sheetsConfig,
+  hasGlobalCloudConfig,
   onGoogleLogin,
   onDirectGoogleTokenLogin,
   onGoogleLogout,
@@ -1059,6 +1061,7 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
           syncMessage={syncMessage}
           syncError={syncError}
           sheetsConfig={sheetsConfig}
+          hasGlobalCloudConfig={hasGlobalCloudConfig}
           stats={stats}
           onGoogleLogin={onGoogleLogin}
           onDirectGoogleTokenLogin={onDirectGoogleTokenLogin}

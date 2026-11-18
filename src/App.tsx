@@ -35,15 +35,20 @@ import {
   UNIT_ORDER,
 } from './utils/spmbLogic.ts';
 import {
+  bootstrapCloudConfigFromUrl,
   callAppsScriptPost,
   createRegistrationDirectInAppsScript,
   fetchDirectPublicState,
+  fetchRuntimeCloudConfig,
   getEnvAdminPassword,
+  getEnvAppsScriptUrl,
+  getStoredCloudAdminToken,
   loadLocalCloudSheetsConfig,
   lookupDirectInAppsScript,
   pullDirectFromAppsScript,
   resolveEffectiveAppsScriptTarget,
   saveLocalCloudSheetsConfig,
+  setStoredCloudAdminToken,
 } from './utils/cloudSync.ts';
 import {
   clearAccessToken,
@@ -108,6 +113,9 @@ export default function App() {
     structuredClone(DEFAULT_FORM_CONFIG)
   );
   const [sheetsConfig, setSheetsConfig] = useState<SheetsPublicConfig>(EMPTY_CONFIG);
+  const [hasGlobalCloudConfig, setHasGlobalCloudConfig] = useState<boolean>(() =>
+    Boolean(getEnvAppsScriptUrl())
+  );
 
   // Admin-only full list (empty for public parents!)
   const [adminToken, setAdminToken] = useState<string | null>(null);
@@ -219,19 +227,46 @@ export default function App() {
       }
 
       if (useCloudDirect) {
-        const localCfg = loadLocalCloudSheetsConfig();
+        const fromShareUrl = bootstrapCloudConfigFromUrl();
+        let localCfg = fromShareUrl || loadLocalCloudSheetsConfig();
+
+        const runtimeCfg = await fetchRuntimeCloudConfig();
+        if (runtimeCfg?.appsScriptUrl) {
+          setHasGlobalCloudConfig(true);
+          localCfg = saveLocalCloudSheetsConfig({
+            ...localCfg,
+            appsScriptUrl: localCfg.appsScriptUrl || runtimeCfg.appsScriptUrl,
+            spreadsheetId: localCfg.spreadsheetId || runtimeCfg.spreadsheetId,
+          });
+        } else if (getEnvAppsScriptUrl()) {
+          setHasGlobalCloudConfig(true);
+        }
+
         setSheetsConfig(localCfg);
         const directState = await fetchDirectPublicState(localCfg).catch(() => null);
         if (directState) {
           setFormConfig(directState.formConfig);
           setPublicStats(directState.stats);
-          if (directState.lastSyncedAt) {
+          if (
+            directState.lastSyncedAt ||
+            directState.spreadsheetId ||
+            directState.spreadsheetTitle ||
+            directState.spreadsheetUrl
+          ) {
             const updatedCfg = saveLocalCloudSheetsConfig({
               ...localCfg,
-              lastSyncedAt: directState.lastSyncedAt,
+              spreadsheetId: localCfg.spreadsheetId || directState.spreadsheetId || '',
+              spreadsheetTitle:
+                directState.spreadsheetTitle || localCfg.spreadsheetTitle || '',
+              spreadsheetUrl: directState.spreadsheetUrl || localCfg.spreadsheetUrl || '',
+              lastSyncedAt: directState.lastSyncedAt || localCfg.lastSyncedAt,
             });
             setSheetsConfig(updatedCfg);
           }
+        }
+        const storedCloudToken = getStoredCloudAdminToken();
+        if (storedCloudToken && !adminTokenRef.current) {
+          setAdminToken(storedCloudToken);
         }
       }
     } finally {
@@ -243,7 +278,7 @@ export default function App() {
     const token = tokenOverride || adminTokenRef.current;
     if (!token) return;
 
-    if (serverAvailableRef.current === false) {
+    const pullCloudDirect = async () => {
       const cfg = loadLocalCloudSheetsConfig();
       setSheetsConfig(cfg);
       if (resolveEffectiveAppsScriptTarget(cfg)) {
@@ -259,13 +294,22 @@ export default function App() {
           setSheetsConfig(updatedCfg);
         }
       }
+    };
+
+    if (serverAvailableRef.current === false) {
+      await pullCloudDirect();
       return;
     }
 
     const res = await fetch('/api/admin/registrations', {
       headers: { 'x-admin-token': token },
     });
-    if (res.ok && isJsonResponse(res)) {
+    if (!isJsonResponse(res)) {
+      serverAvailableRef.current = false;
+      await pullCloudDirect();
+      return;
+    }
+    if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data.registrations)) {
         setAdminRegistrations(dedupeRegistrations(data.registrations));
@@ -275,6 +319,7 @@ export default function App() {
       if (data.formConfig) setFormConfig(data.formConfig);
     } else if (res.status === 401) {
       setAdminToken(null);
+      setStoredCloudAdminToken(null);
       setAdminRegistrations([]);
     }
   }, []);
@@ -339,6 +384,12 @@ export default function App() {
         eventSource.onerror = () => {
           // Keep silent on transient reconnects
         };
+      } else {
+        const storedCloudToken = getStoredCloudAdminToken();
+        if (storedCloudToken) {
+          setAdminToken(storedCloudToken);
+          await fetchAdminRegistrations(storedCloudToken);
+        }
       }
     };
 
@@ -609,6 +660,7 @@ export default function App() {
           return;
         }
         const token = `cloud-admin-${Date.now()}`;
+        setStoredCloudAdminToken(token);
         setAdminToken(token);
         await fetchAdminRegistrations(token);
         return;
@@ -626,6 +678,7 @@ export default function App() {
           return;
         }
         const token = `cloud-admin-${Date.now()}`;
+        setStoredCloudAdminToken(token);
         setAdminToken(token);
         await fetchAdminRegistrations(token);
         return;
@@ -651,6 +704,7 @@ export default function App() {
         headers: { 'x-admin-token': adminToken },
       }).catch(() => undefined);
     }
+    setStoredCloudAdminToken(null);
     setAdminToken(null);
     setAdminRegistrations([]);
     setEditingRecord(null);
@@ -730,13 +784,13 @@ export default function App() {
     setIsSubmitting(true);
     try {
       let createdRecord: RegistrationRecord;
-      if (serverAvailableRef.current === false) {
-        createdRecord = await createRegistrationDirectInAppsScript(
+      const createViaCloudDirect = async () => {
+        const rec = await createRegistrationDirectInAppsScript(
           sheetsConfigRef.current,
           input,
           formConfigRef.current
         );
-        const updatedList = dedupeRegistrations([createdRecord, ...adminRegistrationsRef.current]);
+        const updatedList = dedupeRegistrations([rec, ...adminRegistrationsRef.current]);
         if (isAdmin) {
           setAdminRegistrations(updatedList);
         }
@@ -744,27 +798,37 @@ export default function App() {
         if (refreshed) {
           setPublicStats(refreshed.stats);
         }
+        return rec;
+      };
+
+      if (serverAvailableRef.current === false) {
+        createdRecord = await createViaCloudDirect();
       } else {
         const res = await fetch('/api/registrations', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(input),
         });
-        const data = await res.json();
-        if (!res.ok) {
-          throw new Error(data.error || 'Gagal menyimpan pendaftaran.');
-        }
+        if (!isJsonResponse(res)) {
+          serverAvailableRef.current = false;
+          createdRecord = await createViaCloudDirect();
+        } else {
+          const data = await res.json();
+          if (!res.ok) {
+            throw new Error(data.error || 'Gagal menyimpan pendaftaran.');
+          }
 
-        createdRecord = data.record as RegistrationRecord;
-        if (data.stats) setPublicStats(data.stats);
-        if (isAdmin) {
-          const updatedList = dedupeRegistrations([
-            createdRecord,
-            ...adminRegistrationsRef.current,
-          ]);
-          setAdminRegistrations(updatedList);
-          if (getAccessToken()) {
-            void runSheetsSync(undefined, updatedList, true);
+          createdRecord = data.record as RegistrationRecord;
+          if (data.stats) setPublicStats(data.stats);
+          if (isAdmin) {
+            const updatedList = dedupeRegistrations([
+              createdRecord,
+              ...adminRegistrationsRef.current,
+            ]);
+            setAdminRegistrations(updatedList);
+            if (getAccessToken()) {
+              void runSheetsSync(undefined, updatedList, true);
+            }
           }
         }
       }
@@ -1411,6 +1475,23 @@ export default function App() {
       confirmLabel: 'Putuskan',
       tone: 'danger',
       action: async () => {
+        if (serverAvailableRef.current === false) {
+          const updated = saveLocalCloudSheetsConfig({
+            ...sheetsConfigRef.current,
+            unitTargets: {
+              ...sheetsConfigRef.current.unitTargets,
+              [unit]: {
+                ...target,
+                spreadsheetId: '',
+                spreadsheetTitle: '',
+                spreadsheetUrl: '',
+              },
+            },
+          });
+          setSheetsConfig(updated);
+          setSyncMessage(`Koneksi Sheet ${UNIT_CONFIGS[unit].shortName} telah diputuskan.`);
+          return;
+        }
         const res = await fetch('/api/config/sheets', {
           method: 'PUT',
           headers: {
@@ -1469,6 +1550,17 @@ export default function App() {
       confirmLabel: 'Ya, Putuskan Koneksi',
       tone: 'danger',
       action: async () => {
+        if (serverAvailableRef.current === false) {
+          const updated = saveLocalCloudSheetsConfig({
+            ...sheetsConfigRef.current,
+            spreadsheetId: '',
+            spreadsheetTitle: '',
+            spreadsheetUrl: '',
+          });
+          setSheetsConfig(updated);
+          setSyncMessage('Koneksi ke file Google Spreadsheet telah diputuskan.');
+          return;
+        }
         const res = await fetch('/api/config/sheets', {
           method: 'PUT',
           headers: {
@@ -1921,6 +2013,9 @@ export default function App() {
         onNavigate={(tab) => {
           setEditingRecord(null);
           setActiveTab(tab);
+          if (serverAvailableRef.current === false && (tab === 'dashboard' || tab === 'login')) {
+            void fetchPublicState();
+          }
         }}
       />
 
@@ -2031,6 +2126,7 @@ export default function App() {
             syncMessage={syncMessage}
             syncError={syncError}
             sheetsConfig={sheetsConfig}
+            hasGlobalCloudConfig={hasGlobalCloudConfig}
             onGoogleLogin={() => void handleGoogleLogin()}
             onDirectGoogleTokenLogin={() => void handleDirectGoogleTokenLogin()}
             onGoogleLogout={() => void handleGoogleLogout()}
