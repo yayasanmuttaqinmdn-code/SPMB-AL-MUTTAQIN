@@ -189,7 +189,7 @@ function buildAppsScriptSummaryRows(db: DatabaseState, onlyUnit?: UnitId): strin
   });
   if (onlyUnit) {
     const s = stats.byUnit[onlyUnit];
-    return [
+    const rows: string[][] = [
       [`REKAP SPMB ${UNIT_CONFIGS[onlyUnit].fullName.toUpperCase()}`, INSTITUTION_NAME, `Tahun Ajaran ${ACADEMIC_YEAR}`],
       ['Terakhir Disinkronkan', formattedTime, `Total Pendaftar Lembaga: ${s.count}`],
       [],
@@ -203,8 +203,57 @@ function buildAppsScriptSummaryRows(db: DatabaseState, onlyUnit?: UnitId): strin
         String(s.mukimCount),
       ],
     ];
+    if (s.quotaPutra !== undefined && s.quotaPutri !== undefined) {
+      const maleCount = s.maleCount ?? 0;
+      const femaleCount = s.femaleCount ?? 0;
+      rows.push([]);
+      rows.push(['RINCIAN KUOTA PUTRA & PUTRI', UNIT_CONFIGS[onlyUnit].shortName, 'Pendaftar', 'Kuota', 'Sisa Kuota', 'Keterangan']);
+      rows.push([
+        `${UNIT_CONFIGS[onlyUnit].shortName} Putra`,
+        `${s.fullName} (Putra)`,
+        String(maleCount),
+        String(s.quotaPutra),
+        String(s.remainingPutra ?? Math.max(0, s.quotaPutra - maleCount)),
+        'Kuota Khusus Putra',
+      ]);
+      rows.push([
+        `${UNIT_CONFIGS[onlyUnit].shortName} Putri`,
+        `${s.fullName} (Putri)`,
+        String(femaleCount),
+        String(s.quotaPutri),
+        String(s.remainingPutri ?? Math.max(0, s.quotaPutri - femaleCount)),
+        'Kuota Khusus Putri',
+      ]);
+    }
+    return rows;
   }
-  return [
+
+  const splitRows: string[][] = [];
+  for (const unit of UNIT_ORDER) {
+    const s = stats.byUnit[unit];
+    if (s.quotaPutra !== undefined && s.quotaPutri !== undefined) {
+      const maleCount = s.maleCount ?? 0;
+      const femaleCount = s.femaleCount ?? 0;
+      splitRows.push([
+        `${UNIT_CONFIGS[unit].shortName} Putra`,
+        `${s.fullName} (Putra)`,
+        String(maleCount),
+        String(s.quotaPutra),
+        String(s.remainingPutra ?? Math.max(0, s.quotaPutra - maleCount)),
+        'Kuota Khusus Putra',
+      ]);
+      splitRows.push([
+        `${UNIT_CONFIGS[unit].shortName} Putri`,
+        `${s.fullName} (Putri)`,
+        String(femaleCount),
+        String(s.quotaPutri),
+        String(s.remainingPutri ?? Math.max(0, s.quotaPutri - femaleCount)),
+        'Kuota Khusus Putri',
+      ]);
+    }
+  }
+
+  const rows: string[][] = [
     ['DASHBOARD SPMB REAL-TIME', INSTITUTION_NAME, `Tahun Ajaran ${ACADEMIC_YEAR}`],
     ['Terakhir Disinkronkan', formattedTime, `Total Pendaftar: ${stats.totalCount}`],
     [],
@@ -229,6 +278,14 @@ function buildAppsScriptSummaryRows(db: DatabaseState, onlyUnit?: UnitId): strin
       String(UNIT_ORDER.reduce((acc, u) => acc + stats.byUnit[u].mukimCount, 0)),
     ],
   ];
+
+  if (splitRows.length > 0) {
+    rows.push([]);
+    rows.push(['RINCIAN KUOTA PUTRA & PUTRI', 'Khusus SMP & SMA', 'Pendaftar', 'Kuota', 'Sisa Kuota', 'Keterangan']);
+    rows.push(...splitRows);
+  }
+
+  return rows;
 }
 
 interface AppsScriptJsonPayload {

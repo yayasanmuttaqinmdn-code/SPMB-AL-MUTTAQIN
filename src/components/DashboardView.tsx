@@ -130,6 +130,22 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     style={{ width: `${pct}%` }}
                   />
                 </div>
+                {st.quotaPutra !== undefined && st.quotaPutri !== undefined && (
+                  <div className="grid grid-cols-2 gap-1.5 pt-0.5 text-[11px] font-mono tabular-nums text-[#4E5651]">
+                    <span>
+                      Putra:{' '}
+                      <strong className="text-[#111815]">
+                        {st.maleCount !== undefined ? `${st.maleCount}/${st.quotaPutra}` : st.quotaPutra}
+                      </strong>
+                    </span>
+                    <span className="text-right">
+                      Putri:{' '}
+                      <strong className="text-[#111815]">
+                        {st.femaleCount !== undefined ? `${st.femaleCount}/${st.quotaPutri}` : st.quotaPutri}
+                      </strong>
+                    </span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between text-xs text-[#4E5651] tabular-nums">
                   <span>Sisa {st.remaining} kursi</span>
                   {(unit === 'SMP' || unit === 'SMA') && st.mukimCount > 0 && (
@@ -146,7 +162,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       <section className="bg-white border border-[#E2E5E2] rounded-2xl overflow-hidden">
         <div className="px-4 sm:px-5 py-4 border-b border-[#E2E5E2]">
           <h2 className="font-display text-base font-bold text-[#111815]">
-            Ringkasan Kuota & Daya Tampung per Lembaga
+            Ringkasan Kuota &amp; Daya Tampung per Lembaga
           </h2>
         </div>
 
@@ -167,6 +183,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 const cfg = UNIT_CONFIGS[unit];
                 const st = stats.byUnit[unit];
                 const pct = Math.min(100, Math.round((st.count / Math.max(1, st.quota)) * 100));
+                const hasSplit = st.quotaPutra !== undefined && st.quotaPutri !== undefined;
 
                 return (
                   <tr key={unit} className="hover:bg-[#F9FAF9]">
@@ -177,20 +194,44 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           alt={`Logo ${cfg.shortName}`}
                           className="w-6 h-6 rounded object-contain bg-white border border-[#E2E5E2] shrink-0"
                         />
-                        <span>{cfg.fullName}</span>
+                        <div>
+                          <span>{cfg.fullName}</span>
+                          {hasSplit && (
+                            <p className="text-[11px] font-normal text-[#4E5651]">
+                              Kuota dibagi Putra &amp; Putri
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td className="py-3 px-3.5 sm:px-5 text-xs text-[#4E5651] whitespace-nowrap">
                       {cfg.ageRange}
                     </td>
-                    <td className="py-3 px-3.5 sm:px-5 text-right font-mono font-semibold text-[#14532D] tabular-nums">
-                      {st.count}
+                    <td className="py-3 px-3.5 sm:px-5 text-right font-mono font-semibold text-[#14532D] tabular-nums whitespace-nowrap">
+                      <div>{st.count}</div>
+                      {hasSplit && st.maleCount !== undefined && st.femaleCount !== undefined && (
+                        <div className="text-[11px] font-normal text-[#4E5651]">
+                          Pa {st.maleCount} · Pi {st.femaleCount}
+                        </div>
+                      )}
                     </td>
-                    <td className="py-3 px-3.5 sm:px-5 text-right font-mono text-[#4E5651] tabular-nums">
-                      {st.quota}
+                    <td className="py-3 px-3.5 sm:px-5 text-right font-mono text-[#4E5651] tabular-nums whitespace-nowrap">
+                      <div>{st.quota}</div>
+                      {hasSplit && (
+                        <div className="text-[11px] text-[#4E5651]">
+                          Pa {st.quotaPutra} · Pi {st.quotaPutri}
+                        </div>
+                      )}
                     </td>
-                    <td className="py-3 px-3.5 sm:px-5 text-right font-mono text-[#111815] tabular-nums">
-                      {st.remaining}
+                    <td className="py-3 px-3.5 sm:px-5 text-right font-mono text-[#111815] tabular-nums whitespace-nowrap">
+                      <div>{st.remaining}</div>
+                      {hasSplit &&
+                        st.remainingPutra !== undefined &&
+                        st.remainingPutri !== undefined && (
+                          <div className="text-[11px] text-[#4E5651]">
+                            Pa {st.remainingPutra} · Pi {st.remainingPutri}
+                          </div>
+                        )}
                     </td>
                     <td className="py-3 px-3.5 sm:px-5 text-right font-mono text-xs text-[#4E5651] tabular-nums">
                       {pct}%

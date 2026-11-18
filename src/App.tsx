@@ -2038,19 +2038,25 @@ export default function App() {
             onOpenLookup={() => setActiveTab('lookup')}
           />
         ) : activeTab === 'form' ? (
-          <RegistrationFormView
-            unit={editingRecord && isAdmin ? editingRecord.unit : selectedUnit}
-            formConfig={formConfig}
-            editingRecord={isAdmin ? editingRecord : null}
-            parentSession={parentSession}
-            isSubmitting={isSubmitting}
-            onBackToLogin={() => {
-              setEditingRecord(null);
-              setActiveTab('login');
-            }}
-            onSubmitNew={handleSubmitNew}
-            onRequestUpdate={handleRequestUpdate}
-          />
+          (() => {
+            const activeFormUnit = editingRecord && isAdmin ? editingRecord.unit : selectedUnit;
+            return (
+              <RegistrationFormView
+                unit={activeFormUnit}
+                formConfig={formConfig}
+                unitStat={computedOrPublicStats.byUnit[activeFormUnit]}
+                editingRecord={isAdmin ? editingRecord : null}
+                parentSession={parentSession}
+                isSubmitting={isSubmitting}
+                onBackToLogin={() => {
+                  setEditingRecord(null);
+                  setActiveTab('login');
+                }}
+                onSubmitNew={handleSubmitNew}
+                onRequestUpdate={handleRequestUpdate}
+              />
+            );
+          })()
         ) : activeTab === 'receipt' && activeReceipt ? (
           <ReceiptPreviewView
             record={activeReceipt}

@@ -17,6 +17,8 @@ import type {
 } from '../types/spmb.ts';
 import {
   computeSelectionStats,
+  isGenderSplitQuotaUnit,
+  resolveUnitQuotaTargets,
   SELECTION_STATUS_OPTIONS,
   UNIT_CONFIGS,
   UNIT_ORDER,
@@ -131,10 +133,33 @@ export const CommitteeSelectionView: React.FC<CommitteeSelectionViewProps> = ({
     }
   };
 
-  const activeQuota =
-    unitFilter === 'ALL'
-      ? UNIT_ORDER.reduce((sum, u) => sum + (formConfig[u]?.quota || UNIT_CONFIGS[u].quota), 0)
-      : formConfig[unitFilter]?.quota || UNIT_CONFIGS[unitFilter].quota;
+  const activeQuotaInfo = useMemo(() => {
+    if (unitFilter === 'ALL') {
+      const total = UNIT_ORDER.reduce(
+        (sum, u) => sum + resolveUnitQuotaTargets(u, formConfig[u]).quota,
+        0
+      );
+      return { total, isSplit: false as const };
+    }
+    const resolved = resolveUnitQuotaTargets(unitFilter, formConfig[unitFilter]);
+    if (isGenderSplitQuotaUnit(unitFilter)) {
+      const lulusPutra = unitScopedRecords.filter(
+        (r) => r.statusSeleksi === 'Lulus Seleksi' && r.jenisKelamin === 'Laki-laki'
+      ).length;
+      const lulusPutri = unitScopedRecords.filter(
+        (r) => r.statusSeleksi === 'Lulus Seleksi' && r.jenisKelamin === 'Perempuan'
+      ).length;
+      return {
+        total: resolved.quota,
+        isSplit: true as const,
+        quotaPutra: resolved.quotaPutra ?? 0,
+        quotaPutri: resolved.quotaPutri ?? 0,
+        lulusPutra,
+        lulusPutri,
+      };
+    }
+    return { total: resolved.quota, isSplit: false as const };
+  }, [unitFilter, formConfig, unitScopedRecords]);
 
   return (
     <div className="space-y-5 sm:space-y-6">
@@ -156,9 +181,17 @@ export const CommitteeSelectionView: React.FC<CommitteeSelectionViewProps> = ({
             </div>
           </div>
 
-          <div className="text-xs text-[#4E5651] bg-[#F6F7F6] border border-[#E2E5E2] rounded-lg px-3 py-2 shrink-0 tabular-nums">
-            Daya Tampung {unitFilter === 'ALL' ? 'Semua Lembaga' : UNIT_CONFIGS[unitFilter].shortName}:{' '}
-            <strong className="font-mono text-[#14532D]">{activeQuota} kursi</strong>
+          <div className="text-xs text-[#4E5651] bg-[#F6F7F6] border border-[#E2E5E2] rounded-lg px-3 py-2 shrink-0 tabular-nums space-y-0.5">
+            <div>
+              Daya Tampung {unitFilter === 'ALL' ? 'Semua Lembaga' : UNIT_CONFIGS[unitFilter].shortName}:{' '}
+              <strong className="font-mono text-[#14532D]">{activeQuotaInfo.total} kursi</strong>
+            </div>
+            {activeQuotaInfo.isSplit && (
+              <div className="text-[11px] font-mono text-[#4E5651]">
+                Putra: {activeQuotaInfo.lulusPutra}/{activeQuotaInfo.quotaPutra} lulus · Putri:{' '}
+                {activeQuotaInfo.lulusPutri}/{activeQuotaInfo.quotaPutri} lulus
+              </div>
+            )}
           </div>
         </div>
 

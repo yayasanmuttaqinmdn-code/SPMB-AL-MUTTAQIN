@@ -118,7 +118,32 @@ function buildSummaryRows(
     timeStyle: 'medium',
   });
 
-  return [
+  const splitRows: string[][] = [];
+  for (const unit of UNIT_ORDER) {
+    const s = stats.byUnit[unit];
+    if (s.quotaPutra !== undefined && s.quotaPutri !== undefined) {
+      const maleCount = s.maleCount ?? 0;
+      const femaleCount = s.femaleCount ?? 0;
+      splitRows.push([
+        `${UNIT_CONFIGS[unit].shortName} Putra`,
+        `${s.fullName} (Putra)`,
+        String(maleCount),
+        String(s.quotaPutra),
+        String(s.remainingPutra ?? Math.max(0, s.quotaPutra - maleCount)),
+        'Kuota Khusus Putra',
+      ]);
+      splitRows.push([
+        `${UNIT_CONFIGS[unit].shortName} Putri`,
+        `${s.fullName} (Putri)`,
+        String(femaleCount),
+        String(s.quotaPutri),
+        String(s.remainingPutri ?? Math.max(0, s.quotaPutri - femaleCount)),
+        'Kuota Khusus Putri',
+      ]);
+    }
+  }
+
+  const rows: string[][] = [
     ['DASHBOARD SPMB REAL-TIME', INSTITUTION_NAME, `Tahun Ajaran ${ACADEMIC_YEAR}`],
     ['Terakhir Disinkronkan', formattedTime, `Total Pendaftar: ${stats.totalCount}`],
     [],
@@ -143,6 +168,14 @@ function buildSummaryRows(
       String(UNIT_ORDER.reduce((acc, u) => acc + stats.byUnit[u].mukimCount, 0)),
     ],
   ];
+
+  if (splitRows.length > 0) {
+    rows.push([]);
+    rows.push(['RINCIAN KUOTA PUTRA & PUTRI', 'Khusus SMP & SMA', 'Pendaftar', 'Kuota', 'Sisa Kuota', 'Keterangan']);
+    rows.push(...splitRows);
+  }
+
+  return rows;
 }
 
 export async function createSpmbSpreadsheet(
@@ -213,10 +246,11 @@ async function writeFullStateToSpreadsheet(
   formConfig: FormSchemaConfig = DEFAULT_FORM_CONFIG
 ): Promise<void> {
   const nowIso = new Date().toISOString();
+  const summaryRows = buildSummaryRows(records, nowIso, formConfig);
   const dataToUpdate: Array<{ range: string; values: string[][] }> = [
     {
-      range: `${SUMMARY_TAB}!A1:F10`,
-      values: buildSummaryRows(records, nowIso, formConfig),
+      range: `${SUMMARY_TAB}!A1:F${Math.max(10, summaryRows.length)}`,
+      values: summaryRows,
     },
   ];
 
@@ -241,7 +275,7 @@ async function writeFullStateToSpreadsheet(
     method: 'POST',
     body: JSON.stringify({
       ranges: [
-        `${SUMMARY_TAB}!A1:F20`,
+        `${SUMMARY_TAB}!A1:F30`,
         ...UNIT_ORDER.map((u) => `${UNIT_CONFIGS[u].sheetTabName}!A1:${SHEET_END_COLUMN}2000`),
       ],
     }),
@@ -361,7 +395,7 @@ function buildSingleUnitSummaryRows(
     timeStyle: 'medium',
   });
 
-  return [
+  const rows: string[][] = [
     [`REKAP SPMB ${UNIT_CONFIGS[unit].fullName.toUpperCase()}`, INSTITUTION_NAME, `Tahun Ajaran ${ACADEMIC_YEAR}`],
     ['Terakhir Disinkronkan', formattedTime, `Total Pendaftar Lembaga: ${s.count}`],
     [],
@@ -375,6 +409,31 @@ function buildSingleUnitSummaryRows(
       String(s.mukimCount),
     ],
   ];
+
+  if (s.quotaPutra !== undefined && s.quotaPutri !== undefined) {
+    const maleCount = s.maleCount ?? 0;
+    const femaleCount = s.femaleCount ?? 0;
+    rows.push([]);
+    rows.push(['RINCIAN KUOTA PUTRA & PUTRI', UNIT_CONFIGS[unit].shortName, 'Pendaftar', 'Kuota', 'Sisa Kuota', 'Keterangan']);
+    rows.push([
+      `${UNIT_CONFIGS[unit].shortName} Putra`,
+      `${s.fullName} (Putra)`,
+      String(maleCount),
+      String(s.quotaPutra),
+      String(s.remainingPutra ?? Math.max(0, s.quotaPutra - maleCount)),
+      'Kuota Khusus Putra',
+    ]);
+    rows.push([
+      `${UNIT_CONFIGS[unit].shortName} Putri`,
+      `${s.fullName} (Putri)`,
+      String(femaleCount),
+      String(s.quotaPutri),
+      String(s.remainingPutri ?? Math.max(0, s.quotaPutri - femaleCount)),
+      'Kuota Khusus Putri',
+    ]);
+  }
+
+  return rows;
 }
 
 async function ensureSingleUnitTabs(
@@ -424,11 +483,13 @@ async function writeSingleUnitStateToSpreadsheet(
     ),
   ];
 
+  const singleSummaryRows = buildSingleUnitSummaryRows(unit, sorted, nowIso, formConfig);
+
   await sheetsFetch(`${SHEETS_API_BASE}/${spreadsheetId}/values:batchClear`, accessToken, {
     method: 'POST',
     body: JSON.stringify({
       ranges: [
-        `${UNIT_SUMMARY_TAB}!A1:F10`,
+        `${UNIT_SUMMARY_TAB}!A1:F20`,
         `${unitTab}!A1:${SHEET_END_COLUMN}2000`,
       ],
     }),
@@ -440,8 +501,8 @@ async function writeSingleUnitStateToSpreadsheet(
       valueInputOption: 'RAW',
       data: [
         {
-          range: `${UNIT_SUMMARY_TAB}!A1:F6`,
-          values: buildSingleUnitSummaryRows(unit, sorted, nowIso, formConfig),
+          range: `${UNIT_SUMMARY_TAB}!A1:F${Math.max(6, singleSummaryRows.length)}`,
+          values: singleSummaryRows,
         },
         {
           range: `${unitTab}!A1:${SHEET_END_COLUMN}${Math.max(rows.length, 1)}`,

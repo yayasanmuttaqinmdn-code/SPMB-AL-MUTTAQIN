@@ -27,7 +27,12 @@ import type {
   UnitId,
   UnitSheetsTarget,
 } from '../types/spmb.ts';
-import { UNIT_CONFIGS, UNIT_ORDER } from '../utils/spmbLogic.ts';
+import {
+  isGenderSplitQuotaUnit,
+  resolveUnitQuotaTargets,
+  UNIT_CONFIGS,
+  UNIT_ORDER,
+} from '../utils/spmbLogic.ts';
 import { downloadRegistrationPdf } from '../utils/pdfGenerator.ts';
 import { SheetsSyncView } from './SheetsSyncView.tsx';
 import { CommitteeSelectionView } from './CommitteeSelectionView.tsx';
@@ -360,13 +365,27 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
   };
 
   const handleSaveAllConfig = async () => {
+    for (const u of UNIT_ORDER) {
+      if (isGenderSplitQuotaUnit(u)) {
+        const qPutra = Math.max(0, Number(draftConfig[u].quotaPutra ?? 0));
+        const qPutri = Math.max(0, Number(draftConfig[u].quotaPutri ?? 0));
+        if (qPutra + qPutri < 1) {
+          setEditingUnit(u);
+          setConfigError(
+            `Total kuota Putra dan Putri untuk ${UNIT_CONFIGS[u].shortName} minimal harus 1 kursi.`
+          );
+          return;
+        }
+      }
+    }
+
     setIsSavingConfig(true);
     setConfigFeedback('');
     setConfigError('');
     try {
       await onSaveFormConfig(draftConfig);
       setConfigFeedback(
-        `Keperluan data formulir ${UNIT_CONFIGS[editingUnit].shortName} berhasil disimpan dan langsung aktif untuk pendaftar.`
+        `Keperluan data & kuota ${UNIT_CONFIGS[editingUnit].shortName} berhasil disimpan dan langsung aktif untuk pendaftar.`
       );
     } catch (err) {
       setConfigError(
@@ -557,46 +576,144 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
                 </div>
 
                 {/* Quota & Instruction */}
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 pb-4 border-b border-[#EFF1EF]">
-                  <div>
-                    <label
-                      htmlFor="admin-quota-input"
-                      className="block text-xs font-semibold text-[#111815] mb-1"
-                    >
-                      Kuota Kursi
-                    </label>
-                    <input
-                      id="admin-quota-input"
-                      type="number"
-                      min={1}
-                      value={activeDraft.quota}
-                      onChange={(e) =>
-                        updateUnitDraft((curr) => ({
-                          ...curr,
-                          quota: Math.max(1, Number.parseInt(e.target.value || '1', 10)),
-                        }))
-                      }
-                      className="w-full px-3 py-2 text-sm font-mono bg-[#F9FAF9] border border-[#D4D9D4] rounded-lg focus:outline-none focus:border-[#14532D]"
-                    />
+                {isGenderSplitQuotaUnit(editingUnit) ? (
+                  <div className="space-y-4 pb-4 border-b border-[#EFF1EF]">
+                    {(() => {
+                      const resolved = resolveUnitQuotaTargets(editingUnit, activeDraft);
+                      const putraVal = activeDraft.quotaPutra ?? resolved.quotaPutra ?? 60;
+                      const putriVal = activeDraft.quotaPutri ?? resolved.quotaPutri ?? 60;
+                      return (
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div>
+                            <label
+                              htmlFor="admin-quota-putra-input"
+                              className="block text-xs font-semibold text-[#111815] mb-1"
+                            >
+                              Kuota Putra ({UNIT_CONFIGS[editingUnit].shortName})
+                            </label>
+                            <input
+                              id="admin-quota-putra-input"
+                              type="number"
+                              min={0}
+                              value={putraVal}
+                              onChange={(e) => {
+                                const parsed = Number.parseInt(e.target.value || '0', 10);
+                                const nextPutra = Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+                                updateUnitDraft((curr) => {
+                                  const currPutri = curr.quotaPutri ?? putriVal;
+                                  return {
+                                    ...curr,
+                                    quotaPutra: nextPutra,
+                                    quotaPutri: currPutri,
+                                    quota: Math.max(1, nextPutra + currPutri),
+                                  };
+                                });
+                              }}
+                              className="w-full px-3 py-2 text-sm font-mono bg-[#F9FAF9] border border-[#D4D9D4] rounded-lg focus:outline-none focus:border-[#14532D]"
+                            />
+                          </div>
+
+                          <div>
+                            <label
+                              htmlFor="admin-quota-putri-input"
+                              className="block text-xs font-semibold text-[#111815] mb-1"
+                            >
+                              Kuota Putri ({UNIT_CONFIGS[editingUnit].shortName})
+                            </label>
+                            <input
+                              id="admin-quota-putri-input"
+                              type="number"
+                              min={0}
+                              value={putriVal}
+                              onChange={(e) => {
+                                const parsed = Number.parseInt(e.target.value || '0', 10);
+                                const nextPutri = Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+                                updateUnitDraft((curr) => {
+                                  const currPutra = curr.quotaPutra ?? putraVal;
+                                  return {
+                                    ...curr,
+                                    quotaPutra: currPutra,
+                                    quotaPutri: nextPutri,
+                                    quota: Math.max(1, currPutra + nextPutri),
+                                  };
+                                });
+                              }}
+                              className="w-full px-3 py-2 text-sm font-mono bg-[#F9FAF9] border border-[#D4D9D4] rounded-lg focus:outline-none focus:border-[#14532D]"
+                            />
+                          </div>
+
+                          <div className="px-3.5 py-2 rounded-lg bg-[#F6F7F6] border border-[#E2E5E2] flex flex-col justify-center">
+                            <span className="text-[11px] font-medium text-[#4E5651]">
+                              Total Kuota {UNIT_CONFIGS[editingUnit].shortName}
+                            </span>
+                            <span className="text-sm font-mono font-bold text-[#14532D] tabular-nums">
+                              {putraVal + putriVal} kursi
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    <div>
+                      <label
+                        htmlFor="admin-instructions-input"
+                        className="block text-xs font-semibold text-[#111815] mb-1"
+                      >
+                        Catatan / Arahan untuk Pendaftar
+                      </label>
+                      <input
+                        id="admin-instructions-input"
+                        type="text"
+                        value={activeDraft.instructions}
+                        onChange={(e) =>
+                          updateUnitDraft((curr) => ({ ...curr, instructions: e.target.value }))
+                        }
+                        className="w-full px-3 py-2 text-sm bg-[#F9FAF9] border border-[#D4D9D4] rounded-lg focus:outline-none focus:border-[#14532D]"
+                      />
+                    </div>
                   </div>
-                  <div className="sm:col-span-3">
-                    <label
-                      htmlFor="admin-instructions-input"
-                      className="block text-xs font-semibold text-[#111815] mb-1"
-                    >
-                      Catatan / Arahan untuk Pendaftar
-                    </label>
-                    <input
-                      id="admin-instructions-input"
-                      type="text"
-                      value={activeDraft.instructions}
-                      onChange={(e) =>
-                        updateUnitDraft((curr) => ({ ...curr, instructions: e.target.value }))
-                      }
-                      className="w-full px-3 py-2 text-sm bg-[#F9FAF9] border border-[#D4D9D4] rounded-lg focus:outline-none focus:border-[#14532D]"
-                    />
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 pb-4 border-b border-[#EFF1EF]">
+                    <div>
+                      <label
+                        htmlFor="admin-quota-input"
+                        className="block text-xs font-semibold text-[#111815] mb-1"
+                      >
+                        Kuota Kursi
+                      </label>
+                      <input
+                        id="admin-quota-input"
+                        type="number"
+                        min={1}
+                        value={activeDraft.quota}
+                        onChange={(e) =>
+                          updateUnitDraft((curr) => ({
+                            ...curr,
+                            quota: Math.max(1, Number.parseInt(e.target.value || '1', 10)),
+                          }))
+                        }
+                        className="w-full px-3 py-2 text-sm font-mono bg-[#F9FAF9] border border-[#D4D9D4] rounded-lg focus:outline-none focus:border-[#14532D]"
+                      />
+                    </div>
+                    <div className="sm:col-span-3">
+                      <label
+                        htmlFor="admin-instructions-input"
+                        className="block text-xs font-semibold text-[#111815] mb-1"
+                      >
+                        Catatan / Arahan untuk Pendaftar
+                      </label>
+                      <input
+                        id="admin-instructions-input"
+                        type="text"
+                        value={activeDraft.instructions}
+                        onChange={(e) =>
+                          updateUnitDraft((curr) => ({ ...curr, instructions: e.target.value }))
+                        }
+                        className="w-full px-3 py-2 text-sm bg-[#F9FAF9] border border-[#D4D9D4] rounded-lg focus:outline-none focus:border-[#14532D]"
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Editable Field Rows */}
                 <div className="space-y-3">

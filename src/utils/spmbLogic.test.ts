@@ -19,6 +19,7 @@ import {
   FOUNDATION_LOGO_PATH,
   generateRegistrationNumber,
   getUnitLogoPath,
+  isGenderSplitQuotaUnit,
   isValidAppsScriptExecUrl,
   mergeRegistrationLists,
   normalizeFormSchemaConfig,
@@ -28,6 +29,7 @@ import {
   parsePulledSpreadsheetData,
   PRIMARY_SPREADSHEET_CONFIG,
   registrationToSheetRow,
+  resolveUnitQuotaTargets,
   resolveUnitWebhookDispatch,
   sanitizePublicSheetsConfig,
   searchRegistrationsForStatus,
@@ -817,6 +819,91 @@ test('PRIMARY_SPREADSHEET_CONFIG binds SPMB 2027 spreadsheet and Apps Script end
   assert.equal(isValidAppsScriptExecUrl(cfg.appsScriptUrl), true);
   assert.equal(cfg.appsScriptUrl, PRIMARY_SPREADSHEET_CONFIG.appsScriptUrl);
 });
+
+test('SMP and SMA split registration quotas into Putra and Putri while RA/TK and SDIT remain unified', () => {
+  assert.equal(isGenderSplitQuotaUnit('RA_TK'), false);
+  assert.equal(isGenderSplitQuotaUnit('SDIT'), false);
+  assert.equal(isGenderSplitQuotaUnit('SMP'), true);
+  assert.equal(isGenderSplitQuotaUnit('SMA'), true);
+
+  // Default form config
+  assert.equal(DEFAULT_FORM_CONFIG.RA_TK.quotaPutra, undefined);
+  assert.equal(DEFAULT_FORM_CONFIG.SDIT.quotaPutri, undefined);
+  assert.equal(DEFAULT_FORM_CONFIG.SMP.quota, 120);
+  assert.equal(DEFAULT_FORM_CONFIG.SMP.quotaPutra, 60);
+  assert.equal(DEFAULT_FORM_CONFIG.SMP.quotaPutri, 60);
+  assert.equal(DEFAULT_FORM_CONFIG.SMA.quota, 120);
+  assert.equal(DEFAULT_FORM_CONFIG.SMA.quotaPutra, 60);
+  assert.equal(DEFAULT_FORM_CONFIG.SMA.quotaPutri, 60);
+
+  // Normalization keeps quota === quotaPutra + quotaPutri for SMP/SMA, and strips them from RA/TK & SDIT
+  const normalized = normalizeFormSchemaConfig({
+    RA_TK: { ...DEFAULT_FORM_CONFIG.RA_TK, quota: 50, quotaPutra: 25, quotaPutri: 25 },
+    SMP: { ...DEFAULT_FORM_CONFIG.SMP, quota: 999, quotaPutra: 45, quotaPutri: 75 },
+    SMA: { ...DEFAULT_FORM_CONFIG.SMA, quotaPutra: 0, quotaPutri: 80 },
+  });
+  assert.equal(normalized.RA_TK.quota, 50);
+  assert.equal(normalized.RA_TK.quotaPutra, undefined);
+  assert.equal(normalized.RA_TK.quotaPutri, undefined);
+  assert.equal(normalized.SMP.quota, 120);
+  assert.equal(normalized.SMP.quotaPutra, 45);
+  assert.equal(normalized.SMP.quotaPutri, 75);
+  assert.equal(normalized.SMA.quota, 80);
+  assert.equal(normalized.SMA.quotaPutra, 0);
+  assert.equal(normalized.SMA.quotaPutri, 80);
+
+  // Legacy numeric-only quota for SMP/SMA splits gracefully
+  assert.deepEqual(resolveUnitQuotaTargets('SMP', { unit: 'SMP', quota: 101, instructions: '', requiredDocs: [], fields: [] }), {
+    quota: 101,
+    quotaPutra: 51,
+    quotaPutri: 50,
+  });
+
+  // computeUnitStats tracks maleCount, femaleCount, remainingPutra, remainingPutri
+  const stats = computeUnitStats(
+    [
+      makeRecord({ id: 'smp-pa-1', unit: 'SMP', jenisKelamin: 'Laki-laki' }),
+      makeRecord({ id: 'smp-pa-2', unit: 'SMP', jenisKelamin: 'Laki-laki' }),
+      makeRecord({ id: 'smp-pi-1', unit: 'SMP', jenisKelamin: 'Perempuan' }),
+      makeRecord({ id: 'sma-pi-1', unit: 'SMA', jenisKelamin: 'Perempuan' }),
+    ],
+    normalized
+  );
+
+  assert.equal(stats.byUnit.SMP.maleCount, 2);
+  assert.equal(stats.byUnit.SMP.femaleCount, 1);
+  assert.equal(stats.byUnit.SMP.quotaPutra, 45);
+  assert.equal(stats.byUnit.SMP.quotaPutri, 75);
+  assert.equal(stats.byUnit.SMP.remainingPutra, 43);
+  assert.equal(stats.byUnit.SMP.remainingPutri, 74);
+
+  assert.equal(stats.byUnit.SMA.maleCount, 0);
+  assert.equal(stats.byUnit.SMA.femaleCount, 1);
+  assert.equal(stats.byUnit.SMA.remainingPutra, 0);
+  assert.equal(stats.byUnit.SMA.remainingPutri, 79);
+
+  // computeStatsFromUnitCounts handles explicit gender counts and backward-compatible missing counts
+  const publicStats = computeStatsFromUnitCounts(
+    {
+      SMP: { count: 3, mukimCount: 2, syncedCount: 3, maleCount: 2, femaleCount: 1 },
+      SMA: { count: 2, mukimCount: 2, syncedCount: 2 }, // older Apps Script without maleCount/femaleCount
+      RA_TK: { count: 0, mukimCount: 0, syncedCount: 0 },
+    },
+    normalized
+  );
+  assert.equal(publicStats.byUnit.SMP.maleCount, 2);
+  assert.equal(publicStats.byUnit.SMP.femaleCount, 1);
+  assert.equal(publicStats.byUnit.SMP.remainingPutra, 43);
+  assert.equal(publicStats.byUnit.SMP.remainingPutri, 74);
+
+  assert.equal(publicStats.byUnit.SMA.maleCount, undefined);
+  assert.equal(publicStats.byUnit.SMA.femaleCount, undefined);
+  assert.equal(publicStats.byUnit.SMA.quotaPutra, 0);
+  assert.equal(publicStats.byUnit.SMA.quotaPutri, 80);
+
+  assert.equal(publicStats.byUnit.RA_TK.quotaPutra, undefined);
+});
+
 
 
 

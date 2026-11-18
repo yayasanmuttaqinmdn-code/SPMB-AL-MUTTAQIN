@@ -36,8 +36,8 @@ const LOCAL_ADMIN_TOKEN_KEY = 'spmb_muttaqin_cloud_admin_token_v1';
 export const APPS_SCRIPT_SNIPPET = `var UNIT_DEFS = [
   { id: 'RA_TK', tab: 'RA_TK', shortName: 'RA / TK', fullName: 'RA / TK Muttaqin Josenan', prefix: 'TK', defaultQuota: 60 },
   { id: 'SDIT', tab: 'SDIT', shortName: 'SDIT', fullName: 'SDIT Muttaqin Josenan', prefix: 'SDIT', defaultQuota: 90 },
-  { id: 'SMP', tab: 'SMP', shortName: 'SMP', fullName: 'SMP Muttaqin Josenan', prefix: 'SMP', defaultQuota: 120 },
-  { id: 'SMA', tab: 'SMA', shortName: 'SMA', fullName: 'SMA Muttaqin Josenan', prefix: 'SMA', defaultQuota: 120 }
+  { id: 'SMP', tab: 'SMP', shortName: 'SMP', fullName: 'SMP Muttaqin Josenan', prefix: 'SMP', defaultQuota: 120, defaultQuotaPutra: 60, defaultQuotaPutri: 60 },
+  { id: 'SMA', tab: 'SMA', shortName: 'SMA', fullName: 'SMA Muttaqin Josenan', prefix: 'SMA', defaultQuota: 120, defaultQuotaPutra: 60, defaultQuotaPutri: 60 }
 ];
 var DEFAULT_HEADERS = [
   'ID Sistem', 'No. Pendaftaran', 'Lembaga', 'Tanggal Daftar', 'Nama Lengkap',
@@ -111,14 +111,48 @@ function readUnitRows(ss, tabName) {
 function countTabStats(ss, tabName) {
   var rows = readUnitRows(ss, tabName);
   var mukimCount = 0;
+  var maleCount = 0;
+  var femaleCount = 0;
   for (var i = 0; i < rows.length; i++) {
     var r = rows[i];
+    var gender = String(r[9] || '').trim().toLowerCase();
+    if (gender === 'laki-laki') {
+      maleCount++;
+    } else if (gender === 'perempuan') {
+      femaleCount++;
+    }
     var unitInfo = String(r[28] || '') + ' ' + String(r[29] || '');
     if (unitInfo.indexOf('Santri Mukim (Asrama Pondok)') !== -1) {
       mukimCount++;
     }
   }
-  return { count: rows.length, mukimCount: mukimCount, syncedCount: rows.length };
+  return { count: rows.length, mukimCount: mukimCount, syncedCount: rows.length, maleCount: maleCount, femaleCount: femaleCount };
+}
+
+function resolveUnitQuotaForScript(u, unitCfg) {
+  var isSplit = u.id === 'SMP' || u.id === 'SMA';
+  if (!isSplit) {
+    var q = (unitCfg && Number(unitCfg.quota) > 0) ? Math.floor(Number(unitCfg.quota)) : u.defaultQuota;
+    return { quota: q, quotaPutra: null, quotaPutri: null };
+  }
+  var hasPa = unitCfg && unitCfg.quotaPutra !== undefined && unitCfg.quotaPutra !== null && Number(unitCfg.quotaPutra) >= 0;
+  var hasPi = unitCfg && unitCfg.quotaPutri !== undefined && unitCfg.quotaPutri !== null && Number(unitCfg.quotaPutri) >= 0;
+  var qPa = hasPa ? Math.floor(Number(unitCfg.quotaPutra)) : null;
+  var qPi = hasPi ? Math.floor(Number(unitCfg.quotaPutri)) : null;
+  if (qPa !== null && qPi !== null && (qPa + qPi) > 0) {
+    return { quota: qPa + qPi, quotaPutra: qPa, quotaPutri: qPi };
+  }
+  if (unitCfg && Number(unitCfg.quota) > 0) {
+    var tot = Math.floor(Number(unitCfg.quota));
+    var splitPa = Math.ceil(tot / 2);
+    var splitPi = Math.floor(tot / 2);
+    return { quota: splitPa + splitPi, quotaPutra: splitPa, quotaPutri: splitPi };
+  }
+  return {
+    quota: u.defaultQuota,
+    quotaPutra: u.defaultQuotaPutra || 60,
+    quotaPutri: u.defaultQuotaPutri || 60
+  };
 }
 
 function updateSummaryTab(ss, summaryRows, summaryTabName, onlyUnitTab) {
@@ -132,15 +166,20 @@ function updateSummaryTab(ss, summaryRows, summaryTabName, onlyUnitTab) {
     var totalQuota = 0;
     var totalMukim = 0;
     var unitLines = [];
+    var splitLines = [];
     for (var i = 0; i < UNIT_DEFS.length; i++) {
       var u = UNIT_DEFS[i];
       if (onlyUnitTab && u.tab !== onlyUnitTab) continue;
       var st = countTabStats(ss, u.tab);
-      var quota = (cfg[u.id] && Number(cfg[u.id].quota) > 0) ? Number(cfg[u.id].quota) : u.defaultQuota;
+      var qInfo = resolveUnitQuotaForScript(u, cfg[u.id]);
       totalCount += st.count;
-      totalQuota += quota;
+      totalQuota += qInfo.quota;
       totalMukim += st.mukimCount;
-      unitLines.push([u.shortName, u.fullName, String(st.count), String(quota), String(Math.max(0, quota - st.count)), String(st.mukimCount)]);
+      unitLines.push([u.shortName, u.fullName, String(st.count), String(qInfo.quota), String(Math.max(0, qInfo.quota - st.count)), String(st.mukimCount)]);
+      if (qInfo.quotaPutra !== null && qInfo.quotaPutri !== null) {
+        splitLines.push([u.shortName + ' Putra', u.fullName + ' (Putra)', String(st.maleCount), String(qInfo.quotaPutra), String(Math.max(0, qInfo.quotaPutra - st.maleCount)), 'Kuota Khusus Putra']);
+        splitLines.push([u.shortName + ' Putri', u.fullName + ' (Putri)', String(st.femaleCount), String(qInfo.quotaPutri), String(Math.max(0, qInfo.quotaPutri - st.femaleCount)), 'Kuota Khusus Putri']);
+      }
     }
     rowsToWrite = [
       [onlyUnitTab ? ('REKAP SPMB ' + onlyUnitTab) : 'DASHBOARD SPMB REAL-TIME', 'Yayasan Pondok Pesantren Muttaqin', 'Tahun Ajaran 2026/2027'],
@@ -150,6 +189,11 @@ function updateSummaryTab(ss, summaryRows, summaryTabName, onlyUnitTab) {
     ].concat(unitLines);
     if (!onlyUnitTab) {
       rowsToWrite.push(['TOTAL', 'Seluruh Lembaga Yayasan PP Muttaqin', String(totalCount), String(totalQuota), String(Math.max(0, totalQuota - totalCount)), String(totalMukim)]);
+    }
+    if (splitLines.length > 0) {
+      rowsToWrite.push([]);
+      rowsToWrite.push(['RINCIAN KUOTA PUTRA & PUTRI', 'Khusus SMP & SMA', 'Pendaftar', 'Kuota', 'Sisa Kuota', 'Keterangan']);
+      rowsToWrite = rowsToWrite.concat(splitLines);
     }
   }
   tab.clearContents();
@@ -531,7 +575,16 @@ export interface AppsScriptResponse {
   error?: string;
   message?: string;
   countsByUnit?: Partial<
-    Record<UnitId, { count?: number; mukimCount?: number; syncedCount?: number }>
+    Record<
+      UnitId,
+      {
+        count?: number;
+        mukimCount?: number;
+        syncedCount?: number;
+        maleCount?: number;
+        femaleCount?: number;
+      }
+    >
   >;
   matches?: Array<{ unit?: UnitId; row?: string[] }>;
   rowsByTab?: Partial<Record<UnitId, string[][]>>;
@@ -633,7 +686,16 @@ export async function fetchDirectPublicState(
   if (cfg.syncMode === 'per_unit') {
     let combinedFormConfig = structuredClone(DEFAULT_FORM_CONFIG);
     const countsByUnit: Partial<
-      Record<UnitId, { count?: number; mukimCount?: number; syncedCount?: number }>
+      Record<
+        UnitId,
+        {
+          count?: number;
+          mukimCount?: number;
+          syncedCount?: number;
+          maleCount?: number;
+          femaleCount?: number;
+        }
+      >
     > = {};
     let latestSync = cfg.lastSyncedAt;
 

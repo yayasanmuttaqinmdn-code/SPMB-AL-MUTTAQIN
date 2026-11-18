@@ -8,6 +8,7 @@ import type {
   RegistrationInput,
   RegistrationRecord,
   UnitId,
+  UnitStat,
   ValidationErrors,
 } from '../types/spmb.ts';
 import {
@@ -16,9 +17,11 @@ import {
   createEmptyRegistrationInput,
   getUnitLogoPath,
   GOL_DARAH_OPTIONS,
+  isGenderSplitQuotaUnit,
   normalizeRegistrationInput,
   PENDIDIKAN_OPTIONS,
   PENGHASILAN_OPTIONS,
+  resolveUnitQuotaTargets,
   UNIT_CONFIGS,
   validateRegistrationInput,
 } from '../utils/spmbLogic.ts';
@@ -27,6 +30,7 @@ import { processPasFoto3x4File } from '../utils/photoUtils.ts';
 interface RegistrationFormViewProps {
   unit: UnitId;
   formConfig: FormSchemaConfig;
+  unitStat?: UnitStat;
   editingRecord: RegistrationRecord | null;
   parentSession?: { namaWali: string; noWhatsapp: string } | null;
   isSubmitting: boolean;
@@ -38,6 +42,7 @@ interface RegistrationFormViewProps {
 export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
   unit,
   formConfig,
+  unitStat,
   editingRecord,
   parentSession,
   isSubmitting,
@@ -298,6 +303,23 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
                   : 'Seluruh kolom bertanda * wajib diisi lengkap.'}
               </span>
             </p>
+            {isGenderSplitQuotaUnit(form.unit) && (() => {
+              const qTarget = resolveUnitQuotaTargets(form.unit, currentUnitSchema);
+              const qPutra = unitStat?.quotaPutra ?? qTarget.quotaPutra ?? 60;
+              const qPutri = unitStat?.quotaPutri ?? qTarget.quotaPutri ?? 60;
+              return (
+                <p className="text-xs font-mono text-[#14532D] pt-1 tabular-nums">
+                  Kuota {unitCfg.shortName}: Putra{' '}
+                  {unitStat?.maleCount !== undefined
+                    ? `${unitStat.maleCount}/${qPutra}`
+                    : `${qPutra} kursi`}{' '}
+                  · Putri{' '}
+                  {unitStat?.femaleCount !== undefined
+                    ? `${unitStat.femaleCount}/${qPutri}`
+                    : `${qPutri} kursi`}
+                </p>
+              );
+            })()}
           </div>
         </div>
 
@@ -491,9 +513,25 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
                 onChange={(e) => updateField('jenisKelamin', e.target.value as Gender)}
                 className={inputClass('jenisKelamin')}
               >
-                <option value="Laki-laki">Laki-Laki</option>
-                <option value="Perempuan">Perempuan</option>
+                <option value="Laki-laki">Laki-Laki (Putra)</option>
+                <option value="Perempuan">Perempuan (Putri)</option>
               </select>
+              {isGenderSplitQuotaUnit(form.unit) && (() => {
+                const qTarget = resolveUnitQuotaTargets(form.unit, currentUnitSchema);
+                const isMale = form.jenisKelamin === 'Laki-laki';
+                const targetCap = isMale
+                  ? unitStat?.quotaPutra ?? qTarget.quotaPutra ?? 0
+                  : unitStat?.quotaPutri ?? qTarget.quotaPutri ?? 0;
+                const remCap = isMale ? unitStat?.remainingPutra : unitStat?.remainingPutri;
+                if (remCap === 0 && !editingRecord) {
+                  return (
+                    <p className="mt-1 text-xs text-amber-800">
+                      Kuota utama {isMale ? 'Putra' : 'Putri'} ({targetCap} kursi) sudah penuh; data tetap dapat dikirim sebagai antrean cadangan panitia.
+                    </p>
+                  );
+                }
+                return null;
+              })()}
             </div>
 
             <div>

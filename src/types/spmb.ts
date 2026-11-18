@@ -30,6 +30,8 @@ export interface CustomFieldDefinition {
 export interface UnitFormConfig {
   unit: UnitId;
   quota: number;
+  quotaPutra?: number;
+  quotaPutri?: number;
   instructions: string;
   requiredDocs: string[];
   fields: CustomFieldDefinition[];
@@ -138,6 +140,8 @@ export interface UnitConfig {
   codePrefix: string;
   ageRange: string;
   quota: number;
+  quotaPutra?: number;
+  quotaPutri?: number;
   tagline: string;
   requiredDocs: string[];
 }
@@ -151,6 +155,12 @@ export interface UnitStat {
   remaining: number;
   mukimCount: number;
   syncedCount: number;
+  maleCount?: number;
+  femaleCount?: number;
+  quotaPutra?: number;
+  quotaPutri?: number;
+  remainingPutra?: number;
+  remainingPutri?: number;
 }
 
 export interface DashboardStats {

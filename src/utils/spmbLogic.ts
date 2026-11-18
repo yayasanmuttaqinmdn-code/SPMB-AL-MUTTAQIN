@@ -62,6 +62,66 @@ export function isValidImageDataUrl(value?: string): boolean {
   return /^data:image\/(jpeg|jpg|png|webp);base64,[A-Za-z0-9+/=]+$/i.test(value.trim());
 }
 
+export function isGenderSplitQuotaUnit(unit: UnitId): boolean {
+  return unit === 'SMP' || unit === 'SMA';
+}
+
+export function resolveUnitQuotaTargets(
+  unit: UnitId,
+  unitConfig?: Partial<UnitFormConfig> | null
+): { quota: number; quotaPutra?: number; quotaPutri?: number } {
+  const cfg = UNIT_CONFIGS[unit];
+  if (isGenderSplitQuotaUnit(unit)) {
+    const rawPutra = unitConfig?.quotaPutra;
+    const rawPutri = unitConfig?.quotaPutri;
+    const hasPutra = typeof rawPutra === 'number' && Number.isFinite(rawPutra) && rawPutra >= 0;
+    const hasPutri = typeof rawPutri === 'number' && Number.isFinite(rawPutri) && rawPutri >= 0;
+
+    let quotaPutra: number;
+    let quotaPutri: number;
+
+    if (hasPutra && hasPutri && rawPutra + rawPutri > 0) {
+      quotaPutra = Math.floor(rawPutra);
+      quotaPutri = Math.floor(rawPutri);
+    } else if (hasPutra && !hasPutri) {
+      quotaPutra = Math.floor(rawPutra);
+      quotaPutri = Math.max(0, cfg.quotaPutri ?? Math.floor(cfg.quota / 2));
+      if (quotaPutra + quotaPutri <= 0) {
+        quotaPutri = 1;
+      }
+    } else if (!hasPutra && hasPutri) {
+      quotaPutri = Math.floor(rawPutri);
+      quotaPutra = Math.max(0, cfg.quotaPutra ?? Math.ceil(cfg.quota / 2));
+      if (quotaPutra + quotaPutri <= 0) {
+        quotaPutra = 1;
+      }
+    } else if (
+      typeof unitConfig?.quota === 'number' &&
+      Number.isFinite(unitConfig.quota) &&
+      unitConfig.quota > 0
+    ) {
+      const total = Math.floor(unitConfig.quota);
+      quotaPutra = Math.ceil(total / 2);
+      quotaPutri = Math.floor(total / 2);
+    } else {
+      quotaPutra = cfg.quotaPutra ?? Math.ceil(cfg.quota / 2);
+      quotaPutri = cfg.quotaPutri ?? Math.floor(cfg.quota / 2);
+    }
+
+    return {
+      quota: quotaPutra + quotaPutri,
+      quotaPutra,
+      quotaPutri,
+    };
+  }
+
+  const singleQuota =
+    typeof unitConfig?.quota === 'number' && Number.isFinite(unitConfig.quota) && unitConfig.quota > 0
+      ? Math.floor(unitConfig.quota)
+      : cfg.quota;
+  return { quota: singleQuota };
+}
+
 export const UNIT_CONFIGS: Record<UnitId, UnitConfig> = {
   RA_TK: {
     id: 'RA_TK',
@@ -104,6 +164,8 @@ export const UNIT_CONFIGS: Record<UnitId, UnitConfig> = {
     codePrefix: 'SMP',
     ageRange: 'Lulusan SD / MI',
     quota: 120,
+    quotaPutra: 60,
+    quotaPutri: 60,
     tagline: 'Sekolah Menengah Pertama berbasis pesantren dengan pilihan santri mukim asrama dan non-mukim.',
     requiredDocs: [
       'Fotokopi Akta Kelahiran & Kartu Keluarga (2 lembar)',
@@ -120,6 +182,8 @@ export const UNIT_CONFIGS: Record<UnitId, UnitConfig> = {
     codePrefix: 'SMA',
     ageRange: 'Lulusan SMP / MTs',
     quota: 120,
+    quotaPutra: 60,
+    quotaPutri: 60,
     tagline: 'Sekolah Menengah Atas unggulan pesantren untuk persiapan studi lanjut, sains, dan tahfidz Al-Quran.',
     requiredDocs: [
       'Fotokopi Akta Kelahiran & Kartu Keluarga (2 lembar)',
@@ -162,6 +226,8 @@ export const DEFAULT_FORM_CONFIG: FormSchemaConfig = {
   SMP: {
     unit: 'SMP',
     quota: 120,
+    quotaPutra: 60,
+    quotaPutri: 60,
     instructions: 'Lengkapi formulir pendaftaran siswa, data orang tua/wali, serta info pengajian dengan benar.',
     requiredDocs: [...UNIT_CONFIGS.SMP.requiredDocs],
     fields: [],
@@ -169,6 +235,8 @@ export const DEFAULT_FORM_CONFIG: FormSchemaConfig = {
   SMA: {
     unit: 'SMA',
     quota: 120,
+    quotaPutra: 60,
+    quotaPutri: 60,
     instructions: 'Lengkapi formulir pendaftaran siswa, data orang tua/wali, serta info pengajian dengan benar.',
     requiredDocs: [...UNIT_CONFIGS.SMA.requiredDocs],
     fields: [],
@@ -397,13 +465,16 @@ export function computeUnitStats(
 
   for (const unit of UNIT_ORDER) {
     const cfg = UNIT_CONFIGS[unit];
-    const quota = formConfig[unit]?.quota || cfg.quota;
+    const resolvedQuota = resolveUnitQuotaTargets(unit, formConfig[unit]);
+    const quota = resolvedQuota.quota;
     const unitRecords = records.filter((r) => r.unit === unit);
     const count = unitRecords.length;
     const syncedCount = unitRecords.filter((r) => r.syncState === 'synced').length;
     const mukimCount = unitRecords.filter(
       (r) => r.unitData?.statusAsrama === 'Santri Mukim (Asrama Pondok)'
     ).length;
+    const maleCount = unitRecords.filter((r) => r.jenisKelamin === 'Laki-laki').length;
+    const femaleCount = unitRecords.filter((r) => r.jenisKelamin === 'Perempuan').length;
 
     byUnit[unit] = {
       unit,
@@ -414,6 +485,16 @@ export function computeUnitStats(
       remaining: Math.max(0, quota - count),
       mukimCount,
       syncedCount,
+      maleCount,
+      femaleCount,
+      ...(resolvedQuota.quotaPutra !== undefined && resolvedQuota.quotaPutri !== undefined
+        ? {
+            quotaPutra: resolvedQuota.quotaPutra,
+            quotaPutri: resolvedQuota.quotaPutri,
+            remainingPutra: Math.max(0, resolvedQuota.quotaPutra - maleCount),
+            remainingPutri: Math.max(0, resolvedQuota.quotaPutri - femaleCount),
+          }
+        : {}),
     };
 
     totalCount += count;
@@ -1668,19 +1749,30 @@ export function normalizeFormSchemaConfig(
   for (const unit of UNIT_ORDER) {
     const incoming = raw[unit];
     if (incoming && typeof incoming === 'object') {
+      const resolvedQuota = resolveUnitQuotaTargets(unit, incoming);
       base[unit] = {
         ...base[unit],
         ...incoming,
         unit,
-        quota:
-          typeof incoming.quota === 'number' && incoming.quota > 0
-            ? incoming.quota
-            : base[unit].quota,
+        quota: resolvedQuota.quota,
+        ...(isGenderSplitQuotaUnit(unit)
+          ? {
+              quotaPutra: resolvedQuota.quotaPutra,
+              quotaPutri: resolvedQuota.quotaPutri,
+            }
+          : {
+              quotaPutra: undefined,
+              quotaPutri: undefined,
+            }),
         requiredDocs: Array.isArray(incoming.requiredDocs)
           ? incoming.requiredDocs
           : base[unit].requiredDocs,
         fields: Array.isArray(incoming.fields) ? incoming.fields : base[unit].fields,
       };
+      if (!isGenderSplitQuotaUnit(unit)) {
+        delete base[unit].quotaPutra;
+        delete base[unit].quotaPutri;
+      }
     }
   }
   return base;
@@ -1805,7 +1897,16 @@ export function parsePulledSpreadsheetData(
 
 export function computeStatsFromUnitCounts(
   countsByUnit: Partial<
-    Record<UnitId, { count?: number; mukimCount?: number; syncedCount?: number }>
+    Record<
+      UnitId,
+      {
+        count?: number;
+        mukimCount?: number;
+        syncedCount?: number;
+        maleCount?: number;
+        femaleCount?: number;
+      }
+    >
   >,
   formConfig: FormSchemaConfig = DEFAULT_FORM_CONFIG,
   updatedAt?: string
@@ -1818,11 +1919,25 @@ export function computeStatsFromUnitCounts(
 
   for (const unit of UNIT_ORDER) {
     const cfg = UNIT_CONFIGS[unit];
-    const quota = formConfig[unit]?.quota || cfg.quota;
+    const resolvedQuota = resolveUnitQuotaTargets(unit, formConfig[unit]);
+    const quota = resolvedQuota.quota;
     const raw = countsByUnit[unit] || {};
     const count = Math.max(0, Number(raw.count || 0));
     const mukimCount = Math.max(0, Number(raw.mukimCount || 0));
     const syncedCount = Math.min(count, Math.max(0, Number(raw.syncedCount ?? count)));
+
+    const hasExplicitGenderCounts =
+      typeof raw.maleCount === 'number' || typeof raw.femaleCount === 'number';
+    const maleCount = hasExplicitGenderCounts
+      ? Math.max(0, Number(raw.maleCount || 0))
+      : count === 0
+        ? 0
+        : undefined;
+    const femaleCount = hasExplicitGenderCounts
+      ? Math.max(0, Number(raw.femaleCount || 0))
+      : count === 0
+        ? 0
+        : undefined;
 
     byUnit[unit] = {
       unit,
@@ -1833,6 +1948,20 @@ export function computeStatsFromUnitCounts(
       remaining: Math.max(0, quota - count),
       mukimCount,
       syncedCount,
+      ...(maleCount !== undefined ? { maleCount } : {}),
+      ...(femaleCount !== undefined ? { femaleCount } : {}),
+      ...(resolvedQuota.quotaPutra !== undefined && resolvedQuota.quotaPutri !== undefined
+        ? {
+            quotaPutra: resolvedQuota.quotaPutra,
+            quotaPutri: resolvedQuota.quotaPutri,
+            ...(maleCount !== undefined
+              ? { remainingPutra: Math.max(0, resolvedQuota.quotaPutra - maleCount) }
+              : {}),
+            ...(femaleCount !== undefined
+              ? { remainingPutri: Math.max(0, resolvedQuota.quotaPutri - femaleCount) }
+              : {}),
+          }
+        : {}),
     };
 
     totalCount += count;
