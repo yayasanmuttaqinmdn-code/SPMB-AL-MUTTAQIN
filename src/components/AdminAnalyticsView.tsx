@@ -1,10 +1,14 @@
 import React, { useMemo, useState } from 'react';
-import { GraduationCap, MapPin, Search, Users } from 'lucide-react';
-import type { RegistrationRecord, UnitId } from '../types/spmb.ts';
+import { ArrowRight, GraduationCap, MapPin, Search, Users } from 'lucide-react';
+import type { FormSchemaConfig, RegistrationRecord, UnitId } from '../types/spmb.ts';
 import {
   classifyAlumniOrigin,
   computeAdminAnalytics,
+  computePerUnitRecaps,
+  DEFAULT_FORM_CONFIG,
   FOUNDATION_LOGO_PATH,
+  getUnitLogoPath,
+  isGenderSplitQuotaUnit,
   UNIT_CONFIGS,
   UNIT_ORDER,
   type AlumniCategory,
@@ -12,6 +16,7 @@ import {
 
 interface AdminAnalyticsViewProps {
   registrations: RegistrationRecord[];
+  formConfig?: FormSchemaConfig;
 }
 
 type RegionFilter = 'MADIUN_ALL' | 'KOTA_MADIUN' | 'KAB_MADIUN' | 'ALL';
@@ -30,19 +35,26 @@ function formatAlumniCategoryLabel(cat: Exclude<AlumniCategory, 'NON_ALUMNI'>): 
 
 export const AdminAnalyticsView: React.FC<AdminAnalyticsViewProps> = ({
   registrations,
+  formConfig = DEFAULT_FORM_CONFIG,
 }) => {
   const [unitFilter, setUnitFilter] = useState<'ALL' | UnitId>('ALL');
   const [regionFilter, setRegionFilter] = useState<RegionFilter>('MADIUN_ALL');
   const [alumniFilter, setAlumniFilter] = useState<AlumniFilter>('ALL_ALUMNI');
   const [alumniSearch, setAlumniSearch] = useState('');
 
-  // Full dataset analytics (for gender matrix across all 4 jenjang & overall KPIs)
+  // Full dataset analytics (for comparison table across all 4 jenjang)
   const fullAnalytics = useMemo(
     () => computeAdminAnalytics(registrations),
     [registrations]
   );
 
-  // Unit-scoped dataset for Pengajian & Alumni drill-down
+  // Separated recap per unit (TK, SD, SMP, SMA)
+  const perUnitRecaps = useMemo(
+    () => computePerUnitRecaps(registrations, formConfig),
+    [registrations, formConfig]
+  );
+
+  // Unit-scoped dataset for drill-down view
   const scopedRecords = useMemo(() => {
     if (unitFilter === 'ALL') return registrations;
     return registrations.filter((r) => r.unit === unitFilter);
@@ -52,6 +64,8 @@ export const AdminAnalyticsView: React.FC<AdminAnalyticsViewProps> = ({
     () => computeAdminAnalytics(scopedRecords),
     [scopedRecords]
   );
+
+  const activeUnitRecap = unitFilter !== 'ALL' ? perUnitRecaps[unitFilter] : null;
 
   const visiblePengajianGroups = useMemo(() => {
     return scopedAnalytics.pengajianGroups.filter((group) => {
@@ -101,56 +115,57 @@ export const AdminAnalyticsView: React.FC<AdminAnalyticsViewProps> = ({
     [visibleDesaSummary]
   );
 
-  const alumniPctOfTotal =
-    fullAnalytics.totalCount > 0
-      ? Math.round((fullAnalytics.alumniSummary.totalAlumni / fullAnalytics.totalCount) * 100)
+  const scopedAlumniPct =
+    scopedAnalytics.totalCount > 0
+      ? Math.round((scopedAnalytics.alumniSummary.totalAlumni / scopedAnalytics.totalCount) * 100)
       : 0;
 
-  const madiunPctOfTotal =
-    fullAnalytics.totalCount > 0
+  const scopedMadiunPct =
+    scopedAnalytics.totalCount > 0
       ? Math.round(
-          (fullAnalytics.pengajianSummary.madiunCombined / fullAnalytics.totalCount) * 100
+          (scopedAnalytics.pengajianSummary.madiunCombined / scopedAnalytics.totalCount) * 100
         )
       : 0;
 
-  const malePctTotal =
+  const fullMalePct =
     fullAnalytics.totalCount > 0
       ? Math.round((fullAnalytics.totalMale / fullAnalytics.totalCount) * 100)
       : 0;
-
-  const femalePctTotal =
-    fullAnalytics.totalCount > 0 ? 100 - malePctTotal : 0;
+  const fullFemalePct = fullAnalytics.totalCount > 0 ? 100 - fullMalePct : 0;
 
   return (
     <div className="space-y-5 sm:space-y-6">
-      {/* Header + Global Unit Scope Filter */}
+      {/* Header + Separated Unit Switcher (TK, SD, SMP, SMA) */}
       <section className="bg-white border border-[#E2E5E2] rounded-2xl p-4 sm:p-6 space-y-5">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-[#E2E5E2]">
-          <div className="flex items-start gap-3">
+          <div className="flex items-center gap-3">
             <img
-              src={FOUNDATION_LOGO_PATH}
-              alt="Logo Yayasan PP Muttaqin"
+              src={unitFilter === 'ALL' ? FOUNDATION_LOGO_PATH : getUnitLogoPath(unitFilter)}
+              alt={
+                unitFilter === 'ALL'
+                  ? 'Logo Yayasan PP Muttaqin'
+                  : `Logo ${UNIT_CONFIGS[unitFilter].shortName}`
+              }
               className="w-11 h-11 rounded-xl object-contain bg-white p-0.5 border border-[#E2E5E2] shrink-0"
             />
             <div>
               <h2 className="font-display text-lg sm:text-xl font-bold text-[#111815]">
-                Dashboard Khusus Admin — Sebaran Pengajian, Alumni &amp; Gender
+                {unitFilter === 'ALL'
+                  ? 'Rekap Dashboard Admin'
+                  : `Rekap ${UNIT_CONFIGS[unitFilter].fullName}`}
               </h2>
-              <p className="text-xs text-[#4E5651] mt-0.5">
-                Rekap analitik khusus Panitia Admin untuk memantau asal daerah pengajian Madiun /
-                Kota Madiun, pendaftar alumni Al Muttaqin, dan komposisi Laki-laki / Perempuan tiap
-                jenjang.
-              </p>
             </div>
           </div>
 
           <div
-            role="group"
-            aria-label="Filter jenjang analitik"
+            role="tablist"
+            aria-label="Pilih rekap jenjang dashboard admin"
             className="flex flex-wrap sm:flex-nowrap items-center gap-1 p-1 bg-[#F2F4F2] rounded-lg shrink-0"
           >
             <button
               type="button"
+              role="tab"
+              aria-selected={unitFilter === 'ALL'}
               onClick={() => setUnitFilter('ALL')}
               className={`px-3 py-1.5 text-xs font-semibold rounded-md whitespace-nowrap transition-colors ${
                 unitFilter === 'ALL'
@@ -158,108 +173,261 @@ export const AdminAnalyticsView: React.FC<AdminAnalyticsViewProps> = ({
                   : 'text-[#4E5651] hover:text-[#111815]'
               }`}
             >
-              Semua Jenjang
+              Semua ({registrations.length})
             </button>
             {UNIT_ORDER.map((u) => (
               <button
                 key={u}
                 type="button"
+                role="tab"
+                aria-selected={unitFilter === u}
                 onClick={() => setUnitFilter(u)}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-md whitespace-nowrap transition-colors ${
+                className={`px-3 py-1.5 text-xs font-semibold rounded-md whitespace-nowrap transition-colors tabular-nums ${
                   unitFilter === u
                     ? 'bg-white text-[#14532D] shadow-xs'
                     : 'text-[#4E5651] hover:text-[#111815]'
                 }`}
               >
-                {UNIT_CONFIGS[u].shortName}
+                {UNIT_CONFIGS[u].shortName} ({perUnitRecaps[u].totalCount})
               </button>
             ))}
           </div>
         </div>
 
-        {/* 4 Summary KPI Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <div className="p-4 rounded-xl bg-[#14532D] text-white flex flex-col justify-between">
-            <p className="text-xs text-white/80">Total Pendaftar Yayasan</p>
-            <p className="mt-1.5 font-mono text-2xl sm:text-3xl font-bold tabular-nums">
-              {fullAnalytics.totalCount}
-            </p>
-            <p className="mt-2 pt-2 border-t border-white/15 text-xs text-white/85 tabular-nums">
-              Laki-laki: {fullAnalytics.totalMale} · Perempuan: {fullAnalytics.totalFemale}
-            </p>
-          </div>
+        {/* OVERVIEW MODE: 4 Separate Recap Panels for RA / TK, SDIT, SMP, SMA */}
+        {unitFilter === 'ALL' ? (
+          <div
+            aria-label="Rekap terpisah per jenjang"
+            className="grid grid-cols-1 md:grid-cols-2 gap-4"
+          >
+            {UNIT_ORDER.map((unit) => {
+              const recap = perUnitRecaps[unit];
+              const isGenderSplit = isGenderSplitQuotaUnit(unit);
+              const pct =
+                recap.quota > 0
+                  ? Math.min(100, Math.round((recap.totalCount / recap.quota) * 100))
+                  : 0;
 
-          <div className="p-4 rounded-xl bg-[#F6F7F6] border border-[#E2E5E2] flex flex-col justify-between">
-            <p className="text-xs text-[#4E5651]">Pengajian Madiun / Kota Madiun</p>
-            <div className="mt-1.5 flex items-baseline gap-2">
-              <span className="font-mono text-2xl sm:text-3xl font-bold text-[#14532D] tabular-nums">
-                {fullAnalytics.pengajianSummary.madiunCombined}
-              </span>
-              <span className="text-xs font-mono text-[#4E5651] tabular-nums">
-                ({madiunPctOfTotal}%)
-              </span>
-            </div>
-            <p className="mt-2 pt-2 border-t border-[#E2E5E2] text-xs text-[#4E5651] tabular-nums">
-              Kota Madiun: {fullAnalytics.pengajianSummary.kotaMadiun} · Kab. Madiun:{' '}
-              {fullAnalytics.pengajianSummary.kabMadiun}
-            </p>
-          </div>
+              return (
+                <article
+                  key={unit}
+                  aria-label={`Rekap ${recap.shortName}`}
+                  className="p-4 sm:p-5 rounded-xl bg-[#F9FAF9] border border-[#E2E5E2] flex flex-col justify-between gap-4"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <img
+                        src={getUnitLogoPath(unit)}
+                        alt={`Logo ${recap.shortName}`}
+                        className="w-10 h-10 rounded-lg object-contain bg-white p-0.5 border border-[#E2E5E2] shrink-0"
+                      />
+                      <div className="min-w-0">
+                        <h3 className="font-display text-base font-bold text-[#111815] truncate">
+                          {recap.fullName}
+                        </h3>
+                        <p className="text-xs text-[#4E5651] tabular-nums">
+                          Kuota: {recap.quota} · Sisa: {recap.remaining}
+                        </p>
+                      </div>
+                    </div>
 
-          <div className="p-4 rounded-xl bg-[#F6F7F6] border border-[#E2E5E2] flex flex-col justify-between">
-            <p className="text-xs text-[#4E5651]">Alumni Lembaga Al Muttaqin</p>
-            <div className="mt-1.5 flex items-baseline gap-2">
-              <span className="font-mono text-2xl sm:text-3xl font-bold text-[#14532D] tabular-nums">
-                {fullAnalytics.alumniSummary.totalAlumni}
-              </span>
-              <span className="text-xs font-mono text-[#4E5651] tabular-nums">
-                ({alumniPctOfTotal}%)
-              </span>
-            </div>
-            <p className="mt-2 pt-2 border-t border-[#E2E5E2] text-xs text-[#4E5651] tabular-nums">
-              RA: {fullAnalytics.alumniSummary.raAlMuttaqin} · SDIT:{' '}
-              {fullAnalytics.alumniSummary.sditAlMuttaqin} · SMP/Wustha:{' '}
-              {fullAnalytics.alumniSummary.smpWusthaAlMuttaqin}
-            </p>
-          </div>
+                    <button
+                      type="button"
+                      onClick={() => setUnitFilter(unit)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-[#14532D] bg-white border border-[#D4D9D4] hover:border-[#14532D] rounded-lg whitespace-nowrap shrink-0 transition-colors"
+                    >
+                      <span>Detail</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
 
-          <div className="p-4 rounded-xl bg-[#F6F7F6] border border-[#E2E5E2] flex flex-col justify-between">
-            <p className="text-xs text-[#4E5651]">Komposisi Laki-laki &amp; Perempuan</p>
-            <div className="mt-1.5 flex items-baseline gap-2 font-mono text-xl sm:text-2xl font-bold text-[#111815] tabular-nums">
-              <span className="text-[#14532D]">{fullAnalytics.totalMale} L</span>
-              <span className="text-[#4E5651] text-base font-normal">/</span>
-              <span className="text-[#926C15]">{fullAnalytics.totalFemale} P</span>
-            </div>
-            <p className="mt-2 pt-2 border-t border-[#E2E5E2] text-xs text-[#4E5651] tabular-nums">
-              Rasio: {malePctTotal}% Laki-laki · {femalePctTotal}% Perempuan
-            </p>
+                  {/* Primary Count + Progress + Split Putra/Putri if SMP/SMA */}
+                  <div className="space-y-2">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="font-mono text-2xl sm:text-3xl font-bold text-[#14532D] tabular-nums">
+                          {recap.totalCount}
+                        </span>
+                        <span className="text-xs font-mono text-[#4E5651] tabular-nums">
+                          / {recap.quota} ({pct}%)
+                        </span>
+                      </div>
+                      <span className="text-xs font-mono font-semibold text-[#111815] tabular-nums">
+                        {recap.maleCount} L · {recap.femaleCount} P
+                      </span>
+                    </div>
+
+                    <div className="h-2 w-full bg-[#E7EAE7] rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-[#14532D] transition-all"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+
+                    {isGenderSplit &&
+                      recap.quotaPutra !== undefined &&
+                      recap.quotaPutri !== undefined && (
+                        <div className="grid grid-cols-2 gap-2 pt-1 text-xs tabular-nums">
+                          <div className="px-2.5 py-1.5 rounded-lg bg-white border border-[#E2E5E2] flex items-center justify-between">
+                            <span className="text-[#4E5651]">Putra</span>
+                            <strong className="font-mono text-[#111815]">
+                              {recap.maleCount}/{recap.quotaPutra}
+                            </strong>
+                          </div>
+                          <div className="px-2.5 py-1.5 rounded-lg bg-white border border-[#E2E5E2] flex items-center justify-between">
+                            <span className="text-[#4E5651]">Putri</span>
+                            <strong className="font-mono text-[#111815]">
+                              {recap.femaleCount}/{recap.quotaPutri}
+                            </strong>
+                          </div>
+                        </div>
+                      )}
+                  </div>
+
+                  {/* Per-Unit Metrics Breakdown */}
+                  <div className="grid grid-cols-3 gap-2 pt-3 border-t border-[#E2E5E2] text-xs">
+                    <div>
+                      <p className="text-[11px] text-[#4E5651]">Pengajian</p>
+                      <p className="font-mono font-semibold text-[#111815] tabular-nums mt-0.5">
+                        Kota {recap.pengajian.kotaMadiun} · Kab {recap.pengajian.kabMadiun}
+                      </p>
+                      <p className="font-mono text-[11px] text-[#4E5651] tabular-nums">
+                        Luar: {recap.pengajian.luarMadiun}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-[11px] text-[#4E5651]">Alumni</p>
+                      <p className="font-mono font-semibold text-[#14532D] tabular-nums mt-0.5">
+                        {recap.alumni.totalAlumni} Alumni
+                      </p>
+                      <p className="font-mono text-[11px] text-[#4E5651] tabular-nums">
+                        Umum: {recap.alumni.nonAlumni}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-[11px] text-[#4E5651]">Verif &amp; Lulus</p>
+                      <p className="font-mono font-semibold text-[#111815] tabular-nums mt-0.5">
+                        Verif: {recap.verifiedCount}
+                      </p>
+                      <p className="font-mono text-[11px] text-[#4E5651] tabular-nums">
+                        Lulus: {recap.selectionStats.lulus}
+                      </p>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
           </div>
-        </div>
+        ) : (
+          /* SINGLE-UNIT MODE: Strictly scoped 4 KPI cards for TK, SD, SMP, or SMA */
+          activeUnitRecap && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              <div className="p-4 rounded-xl bg-[#14532D] text-white flex flex-col justify-between">
+                <p className="text-xs text-white/80">
+                  Pendaftar {activeUnitRecap.shortName}
+                </p>
+                <div className="mt-1.5 flex items-baseline gap-2">
+                  <span className="font-mono text-2xl sm:text-3xl font-bold tabular-nums">
+                    {activeUnitRecap.totalCount}
+                  </span>
+                  <span className="text-xs font-mono text-white/80 tabular-nums">
+                    / {activeUnitRecap.quota} kuota (Sisa {activeUnitRecap.remaining})
+                  </span>
+                </div>
+                {isGenderSplitQuotaUnit(activeUnitRecap.unit) &&
+                activeUnitRecap.quotaPutra !== undefined &&
+                activeUnitRecap.quotaPutri !== undefined ? (
+                  <p className="mt-2 pt-2 border-t border-white/15 text-xs text-white/90 tabular-nums">
+                    Putra: {activeUnitRecap.maleCount}/{activeUnitRecap.quotaPutra} · Putri:{' '}
+                    {activeUnitRecap.femaleCount}/{activeUnitRecap.quotaPutri}
+                  </p>
+                ) : (
+                  <p className="mt-2 pt-2 border-t border-white/15 text-xs text-white/85 tabular-nums">
+                    Laki-laki: {activeUnitRecap.maleCount} · Perempuan:{' '}
+                    {activeUnitRecap.femaleCount}
+                  </p>
+                )}
+              </div>
+
+              <div className="p-4 rounded-xl bg-[#F6F7F6] border border-[#E2E5E2] flex flex-col justify-between">
+                <p className="text-xs text-[#4E5651]">
+                  Pengajian Madiun ({activeUnitRecap.shortName})
+                </p>
+                <div className="mt-1.5 flex items-baseline gap-2">
+                  <span className="font-mono text-2xl sm:text-3xl font-bold text-[#14532D] tabular-nums">
+                    {activeUnitRecap.pengajian.madiunCombined}
+                  </span>
+                  <span className="text-xs font-mono text-[#4E5651] tabular-nums">
+                    ({scopedMadiunPct}%)
+                  </span>
+                </div>
+                <p className="mt-2 pt-2 border-t border-[#E2E5E2] text-xs text-[#4E5651] tabular-nums">
+                  Kota: {activeUnitRecap.pengajian.kotaMadiun} · Kab:{' '}
+                  {activeUnitRecap.pengajian.kabMadiun} · Luar:{' '}
+                  {activeUnitRecap.pengajian.luarMadiun}
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-[#F6F7F6] border border-[#E2E5E2] flex flex-col justify-between">
+                <p className="text-xs text-[#4E5651]">
+                  Alumni Muttaqin ({activeUnitRecap.shortName})
+                </p>
+                <div className="mt-1.5 flex items-baseline gap-2">
+                  <span className="font-mono text-2xl sm:text-3xl font-bold text-[#14532D] tabular-nums">
+                    {activeUnitRecap.alumni.totalAlumni}
+                  </span>
+                  <span className="text-xs font-mono text-[#4E5651] tabular-nums">
+                    ({scopedAlumniPct}%)
+                  </span>
+                </div>
+                <p className="mt-2 pt-2 border-t border-[#E2E5E2] text-xs text-[#4E5651] tabular-nums">
+                  Umum / Non-Alumni: {activeUnitRecap.alumni.nonAlumni}
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-[#F6F7F6] border border-[#E2E5E2] flex flex-col justify-between">
+                <p className="text-xs text-[#4E5651]">
+                  Verifikasi &amp; Seleksi ({activeUnitRecap.shortName})
+                </p>
+                <div className="mt-1.5 flex items-baseline gap-1.5 font-mono text-lg sm:text-xl font-bold text-[#111815] tabular-nums whitespace-nowrap">
+                  <span className="text-[#14532D]">{activeUnitRecap.verifiedCount} Verif</span>
+                  <span className="text-[#4E5651] text-sm font-normal">·</span>
+                  <span className="text-[#926C15]">
+                    {activeUnitRecap.selectionStats.lulus} Lulus
+                  </span>
+                </div>
+                <p className="mt-2 pt-2 border-t border-[#E2E5E2] text-xs text-[#4E5651] tabular-nums">
+                  Proses: {activeUnitRecap.selectionStats.proses} · Cadangan:{' '}
+                  {activeUnitRecap.selectionStats.cadangan}
+                </p>
+              </div>
+            </div>
+          )
+        )}
       </section>
 
       {/* ================================================================== */}
-      {/* SECTION 1: JUMLAH LAKI-LAKI DAN PEREMPUAN TIAP JENJANG             */}
+      {/* SECTION 1: PERBANDINGAN LAKI-LAKI DAN PEREMPUAN                    */}
       {/* ================================================================== */}
       <section
         aria-labelledby="heading-gender-per-unit"
         className="bg-white border border-[#E2E5E2] rounded-2xl overflow-hidden"
       >
         <div className="p-4 sm:p-5 border-b border-[#E2E5E2] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-start gap-3">
+          <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-[#F2F4F2] text-[#14532D] flex items-center justify-center shrink-0">
               <Users className="w-4 h-4" />
             </div>
-            <div>
-              <h3
-                id="heading-gender-per-unit"
-                className="font-display text-base sm:text-lg font-bold text-[#111815]"
-              >
-                Jumlah Laki-laki dan Perempuan Tiap Jenjang
-              </h3>
-              <p className="text-xs text-[#4E5651]">
-                Perbandingan calon murid putra (Laki-laki) dan putri (Perempuan) per lembaga
-                pendidikan.
-              </p>
-            </div>
+            <h3
+              id="heading-gender-per-unit"
+              className="font-display text-base sm:text-lg font-bold text-[#111815]"
+            >
+              {unitFilter === 'ALL'
+                ? 'Perbandingan Laki-laki dan Perempuan Tiap Jenjang'
+                : `Perbandingan Laki-laki dan Perempuan · ${UNIT_CONFIGS[unitFilter].shortName}`}
+            </h3>
           </div>
 
           <div className="flex items-center gap-4 text-xs text-[#4E5651] shrink-0">
@@ -281,37 +449,74 @@ export const AdminAnalyticsView: React.FC<AdminAnalyticsViewProps> = ({
                 <th className="py-3 px-4 sm:px-5 whitespace-nowrap">Jenjang / Lembaga</th>
                 <th className="py-3 px-4 text-right whitespace-nowrap">Laki-laki</th>
                 <th className="py-3 px-4 text-right whitespace-nowrap">Perempuan</th>
-                <th className="py-3 px-4 text-right whitespace-nowrap">Total Pendaftar</th>
+                <th className="py-3 px-4 text-right whitespace-nowrap">Total</th>
                 <th className="py-3 px-4 sm:px-5 whitespace-nowrap min-w-[210px]">
                   Proporsi Gender (L / P)
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E2E5E2] text-sm">
-              {fullAnalytics.genderByUnit.map((row) => {
-                const isSelected = unitFilter === row.unit;
+              {(unitFilter === 'ALL'
+                ? fullAnalytics.genderByUnit
+                : fullAnalytics.genderByUnit.filter((row) => row.unit === unitFilter)
+              ).map((row) => {
+                const unitRecap = perUnitRecaps[row.unit];
+                const hasSplitQuota =
+                  isGenderSplitQuotaUnit(row.unit) &&
+                  unitRecap.quotaPutra !== undefined &&
+                  unitRecap.quotaPutri !== undefined;
+
                 return (
-                  <tr
-                    key={row.unit}
-                    className={
-                      isSelected ? 'bg-[#14532D]/5' : 'hover:bg-[#F9FAF9]'
-                    }
-                  >
+                  <tr key={row.unit} className="hover:bg-[#F9FAF9]">
                     <td className="py-3 px-4 sm:px-5 whitespace-nowrap">
-                      <span className="font-semibold text-[#111815]">{row.fullName}</span>
+                      {unitFilter === 'ALL' ? (
+                        <button
+                          type="button"
+                          onClick={() => setUnitFilter(row.unit)}
+                          className="inline-flex items-center gap-2 font-semibold text-[#111815] hover:text-[#14532D] hover:underline"
+                        >
+                          <img
+                            src={getUnitLogoPath(row.unit)}
+                            alt=""
+                            className="w-5 h-5 rounded-sm object-contain bg-white border border-[#E2E5E2]"
+                          />
+                          <span>{row.fullName}</span>
+                        </button>
+                      ) : (
+                        <div className="inline-flex items-center gap-2 font-semibold text-[#111815]">
+                          <img
+                            src={getUnitLogoPath(row.unit)}
+                            alt=""
+                            className="w-5 h-5 rounded-sm object-contain bg-white border border-[#E2E5E2]"
+                          />
+                          <span>{row.fullName}</span>
+                        </div>
+                      )}
                     </td>
-                    <td className="py-3 px-4 text-right font-mono font-semibold text-[#14532D] tabular-nums">
+                    <td className="py-3 px-4 text-right font-mono font-semibold text-[#14532D] tabular-nums whitespace-nowrap">
                       {row.maleCount}
+                      {unitFilter !== 'ALL' && hasSplitQuota && (
+                        <span className="text-xs font-normal text-[#4E5651]">
+                          {' '}
+                          / {unitRecap.quotaPutra}
+                        </span>
+                      )}
                     </td>
-                    <td className="py-3 px-4 text-right font-mono font-semibold text-[#926C15] tabular-nums">
+                    <td className="py-3 px-4 text-right font-mono font-semibold text-[#926C15] tabular-nums whitespace-nowrap">
                       {row.femaleCount}
+                      {unitFilter !== 'ALL' && hasSplitQuota && (
+                        <span className="text-xs font-normal text-[#4E5651]">
+                          {' '}
+                          / {unitRecap.quotaPutri}
+                        </span>
+                      )}
                     </td>
-                    <td className="py-3 px-4 text-right font-mono font-bold text-[#111815] tabular-nums">
+                    <td className="py-3 px-4 text-right font-mono font-bold text-[#111815] tabular-nums whitespace-nowrap">
                       {row.totalCount}
                     </td>
                     <td className="py-3 px-4 sm:px-5">
                       {row.totalCount === 0 ? (
-                        <span className="text-xs text-[#4E5651]">Belum ada pendaftar</span>
+                        <span className="text-xs text-[#4E5651]">-</span>
                       ) : (
                         <div className="space-y-1">
                           <div className="h-2.5 w-full rounded-sm bg-[#EFF1EF] overflow-hidden flex">
@@ -337,25 +542,27 @@ export const AdminAnalyticsView: React.FC<AdminAnalyticsViewProps> = ({
                 );
               })}
             </tbody>
-            <tfoot>
-              <tr className="bg-[#F6F7F6] border-t border-[#D4D9D4] text-sm font-bold text-[#111815]">
-                <td className="py-3 px-4 sm:px-5 whitespace-nowrap">
-                  Total Keseluruhan Yayasan
-                </td>
-                <td className="py-3 px-4 text-right font-mono text-[#14532D] tabular-nums">
-                  {fullAnalytics.totalMale}
-                </td>
-                <td className="py-3 px-4 text-right font-mono text-[#926C15] tabular-nums">
-                  {fullAnalytics.totalFemale}
-                </td>
-                <td className="py-3 px-4 text-right font-mono tabular-nums">
-                  {fullAnalytics.totalCount}
-                </td>
-                <td className="py-3 px-4 sm:px-5 text-xs font-mono font-medium text-[#4E5651] tabular-nums">
-                  {malePctTotal}% Laki-laki · {femalePctTotal}% Perempuan
-                </td>
-              </tr>
-            </tfoot>
+            {unitFilter === 'ALL' && (
+              <tfoot>
+                <tr className="bg-[#F6F7F6] border-t border-[#D4D9D4] text-sm font-bold text-[#111815]">
+                  <td className="py-3 px-4 sm:px-5 whitespace-nowrap">
+                    Total Keseluruhan Yayasan
+                  </td>
+                  <td className="py-3 px-4 text-right font-mono text-[#14532D] tabular-nums">
+                    {fullAnalytics.totalMale}
+                  </td>
+                  <td className="py-3 px-4 text-right font-mono text-[#926C15] tabular-nums">
+                    {fullAnalytics.totalFemale}
+                  </td>
+                  <td className="py-3 px-4 text-right font-mono tabular-nums">
+                    {fullAnalytics.totalCount}
+                  </td>
+                  <td className="py-3 px-4 sm:px-5 text-xs font-mono font-medium text-[#4E5651] tabular-nums">
+                    {fullMalePct}% L · {fullFemalePct}% P
+                  </td>
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
       </section>
@@ -369,23 +576,17 @@ export const AdminAnalyticsView: React.FC<AdminAnalyticsViewProps> = ({
       >
         <div className="p-4 sm:p-5 border-b border-[#E2E5E2] space-y-4">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-            <div className="flex items-start gap-3">
+            <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg bg-[#F2F4F2] text-[#14532D] flex items-center justify-center shrink-0">
                 <MapPin className="w-4 h-4" />
               </div>
-              <div>
-                <h3
-                  id="heading-pengajian-madiun"
-                  className="font-display text-base sm:text-lg font-bold text-[#111815]"
-                >
-                  Sebaran Pendaftaran Daerah Pengajian Madiun &amp; Kota Madiun
-                  {unitFilter !== 'ALL' ? ` (${UNIT_CONFIGS[unitFilter].shortName})` : ''}
-                </h3>
-                <p className="text-xs text-[#4E5651]">
-                  Pemetaan pendaftar berdasarkan isian Info Pengajian (Daerah, Desa, dan Kelompok)
-                  khusus wilayah Kota Madiun &amp; Kabupaten Madiun.
-                </p>
-              </div>
+              <h3
+                id="heading-pengajian-madiun"
+                className="font-display text-base sm:text-lg font-bold text-[#111815]"
+              >
+                Sebaran Daerah Pengajian
+                {unitFilter !== 'ALL' ? ` · ${UNIT_CONFIGS[unitFilter].shortName}` : ''}
+              </h3>
             </div>
 
             <div
@@ -402,7 +603,7 @@ export const AdminAnalyticsView: React.FC<AdminAnalyticsViewProps> = ({
                     : 'text-[#4E5651] hover:text-[#111815]'
                 }`}
               >
-                Madiun &amp; Kota Madiun
+                Madiun &amp; Kota
               </button>
               <button
                 type="button"
@@ -435,7 +636,7 @@ export const AdminAnalyticsView: React.FC<AdminAnalyticsViewProps> = ({
                     : 'text-[#4E5651] hover:text-[#111815]'
                 }`}
               >
-                Semua Daerah ({scopedAnalytics.totalCount})
+                Semua ({scopedAnalytics.totalCount})
               </button>
             </div>
           </div>
@@ -445,12 +646,14 @@ export const AdminAnalyticsView: React.FC<AdminAnalyticsViewProps> = ({
             <div className="p-3.5 rounded-xl bg-[#F9FAF9] border border-[#E2E5E2] flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs text-[#4E5651]">Daerah Kota Madiun</p>
-                <p className="text-[11px] text-[#4E5651] mt-0.5 tabular-nums">
-                  RA {scopedAnalytics.pengajianSummary.kotaMadiunByUnit.RA_TK} · SDIT{' '}
-                  {scopedAnalytics.pengajianSummary.kotaMadiunByUnit.SDIT} · SMP{' '}
-                  {scopedAnalytics.pengajianSummary.kotaMadiunByUnit.SMP} · SMA{' '}
-                  {scopedAnalytics.pengajianSummary.kotaMadiunByUnit.SMA}
-                </p>
+                {unitFilter === 'ALL' && (
+                  <p className="text-[11px] text-[#4E5651] mt-0.5 tabular-nums">
+                    RA {scopedAnalytics.pengajianSummary.kotaMadiunByUnit.RA_TK} · SDIT{' '}
+                    {scopedAnalytics.pengajianSummary.kotaMadiunByUnit.SDIT} · SMP{' '}
+                    {scopedAnalytics.pengajianSummary.kotaMadiunByUnit.SMP} · SMA{' '}
+                    {scopedAnalytics.pengajianSummary.kotaMadiunByUnit.SMA}
+                  </p>
+                )}
               </div>
               <span className="font-mono text-2xl font-bold text-[#14532D] tabular-nums">
                 {scopedAnalytics.pengajianSummary.kotaMadiun}
@@ -459,13 +662,15 @@ export const AdminAnalyticsView: React.FC<AdminAnalyticsViewProps> = ({
 
             <div className="p-3.5 rounded-xl bg-[#F9FAF9] border border-[#E2E5E2] flex items-center justify-between gap-3">
               <div>
-                <p className="text-xs text-[#4E5651]">Daerah Kab. Madiun / Madiun</p>
-                <p className="text-[11px] text-[#4E5651] mt-0.5 tabular-nums">
-                  RA {scopedAnalytics.pengajianSummary.kabMadiunByUnit.RA_TK} · SDIT{' '}
-                  {scopedAnalytics.pengajianSummary.kabMadiunByUnit.SDIT} · SMP{' '}
-                  {scopedAnalytics.pengajianSummary.kabMadiunByUnit.SMP} · SMA{' '}
-                  {scopedAnalytics.pengajianSummary.kabMadiunByUnit.SMA}
-                </p>
+                <p className="text-xs text-[#4E5651]">Daerah Kab. Madiun</p>
+                {unitFilter === 'ALL' && (
+                  <p className="text-[11px] text-[#4E5651] mt-0.5 tabular-nums">
+                    RA {scopedAnalytics.pengajianSummary.kabMadiunByUnit.RA_TK} · SDIT{' '}
+                    {scopedAnalytics.pengajianSummary.kabMadiunByUnit.SDIT} · SMP{' '}
+                    {scopedAnalytics.pengajianSummary.kabMadiunByUnit.SMP} · SMA{' '}
+                    {scopedAnalytics.pengajianSummary.kabMadiunByUnit.SMA}
+                  </p>
+                )}
               </div>
               <span className="font-mono text-2xl font-bold text-[#111815] tabular-nums">
                 {scopedAnalytics.pengajianSummary.kabMadiun}
@@ -475,9 +680,6 @@ export const AdminAnalyticsView: React.FC<AdminAnalyticsViewProps> = ({
             <div className="p-3.5 rounded-xl bg-[#F9FAF9] border border-[#E2E5E2] flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs text-[#4E5651]">Luar Wilayah Madiun</p>
-                <p className="text-[11px] text-[#4E5651] mt-0.5">
-                  Pendaftar dari luar daerah pengajian Madiun
-                </p>
               </div>
               <span className="font-mono text-2xl font-bold text-[#4E5651] tabular-nums">
                 {scopedAnalytics.pengajianSummary.luarMadiun}
@@ -490,10 +692,10 @@ export const AdminAnalyticsView: React.FC<AdminAnalyticsViewProps> = ({
             <div className="pt-2 space-y-2.5">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-semibold text-[#111815]">
-                  Konsentrasi per Desa Pengajian (Wilayah Terpilih)
+                  Konsentrasi per Desa Pengajian
                 </span>
                 <span className="text-[#4E5651] font-mono tabular-nums">
-                  Total wilayah terpilih: {madiunTotalForCurrentFilter} pendaftar
+                  Total: {madiunTotalForCurrentFilter} pendaftar
                 </span>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
@@ -534,18 +736,24 @@ export const AdminAnalyticsView: React.FC<AdminAnalyticsViewProps> = ({
                 <th className="py-3 px-4 sm:px-5 whitespace-nowrap">Daerah Pengajian</th>
                 <th className="py-3 px-4 whitespace-nowrap">Desa Pengajian</th>
                 <th className="py-3 px-4 whitespace-nowrap">Kelompok</th>
-                <th className="py-3 px-3 text-right whitespace-nowrap">RA / TK</th>
-                <th className="py-3 px-3 text-right whitespace-nowrap">SDIT</th>
-                <th className="py-3 px-3 text-right whitespace-nowrap">SMP</th>
-                <th className="py-3 px-3 text-right whitespace-nowrap">SMA</th>
-                <th className="py-3 px-4 sm:px-5 text-right whitespace-nowrap">Total</th>
+                {unitFilter === 'ALL' && (
+                  <>
+                    <th className="py-3 px-3 text-right whitespace-nowrap">RA / TK</th>
+                    <th className="py-3 px-3 text-right whitespace-nowrap">SDIT</th>
+                    <th className="py-3 px-3 text-right whitespace-nowrap">SMP</th>
+                    <th className="py-3 px-3 text-right whitespace-nowrap">SMA</th>
+                  </>
+                )}
+                <th className="py-3 px-4 sm:px-5 text-right whitespace-nowrap">
+                  {unitFilter === 'ALL' ? 'Total' : `Jumlah (${UNIT_CONFIGS[unitFilter].shortName})`}
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E2E5E2] text-sm">
               {visiblePengajianGroups.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={unitFilter === 'ALL' ? 8 : 4}
                     className="py-8 px-4 text-center text-sm text-[#4E5651]"
                   >
                     Belum ada data pendaftar pada filter daerah pengajian dan jenjang ini.
@@ -563,18 +771,22 @@ export const AdminAnalyticsView: React.FC<AdminAnalyticsViewProps> = ({
                     <td className="py-3 px-4 text-xs text-[#4E5651] whitespace-nowrap">
                       {group.kelompok}
                     </td>
-                    <td className="py-3 px-3 text-right font-mono text-xs text-[#4E5651] tabular-nums">
-                      {group.byUnit.RA_TK}
-                    </td>
-                    <td className="py-3 px-3 text-right font-mono text-xs text-[#4E5651] tabular-nums">
-                      {group.byUnit.SDIT}
-                    </td>
-                    <td className="py-3 px-3 text-right font-mono text-xs text-[#4E5651] tabular-nums">
-                      {group.byUnit.SMP}
-                    </td>
-                    <td className="py-3 px-3 text-right font-mono text-xs text-[#4E5651] tabular-nums">
-                      {group.byUnit.SMA}
-                    </td>
+                    {unitFilter === 'ALL' && (
+                      <>
+                        <td className="py-3 px-3 text-right font-mono text-xs text-[#4E5651] tabular-nums">
+                          {group.byUnit.RA_TK}
+                        </td>
+                        <td className="py-3 px-3 text-right font-mono text-xs text-[#4E5651] tabular-nums">
+                          {group.byUnit.SDIT}
+                        </td>
+                        <td className="py-3 px-3 text-right font-mono text-xs text-[#4E5651] tabular-nums">
+                          {group.byUnit.SMP}
+                        </td>
+                        <td className="py-3 px-3 text-right font-mono text-xs text-[#4E5651] tabular-nums">
+                          {group.byUnit.SMA}
+                        </td>
+                      </>
+                    )}
                     <td className="py-3 px-4 sm:px-5 text-right font-mono font-bold text-[#14532D] tabular-nums">
                       {group.totalCount}
                     </td>
@@ -595,23 +807,17 @@ export const AdminAnalyticsView: React.FC<AdminAnalyticsViewProps> = ({
       >
         <div className="p-4 sm:p-5 border-b border-[#E2E5E2] space-y-4">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-            <div className="flex items-start gap-3">
+            <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg bg-[#F2F4F2] text-[#14532D] flex items-center justify-center shrink-0">
                 <GraduationCap className="w-4 h-4" />
               </div>
-              <div>
-                <h3
-                  id="heading-alumni-muttaqin"
-                  className="font-display text-base sm:text-lg font-bold text-[#111815]"
-                >
-                  Pendaftar Alumni Lulusan Lembaga Al Muttaqin
-                  {unitFilter !== 'ALL' ? ` (${UNIT_CONFIGS[unitFilter].shortName})` : ''}
-                </h3>
-                <p className="text-xs text-[#4E5651]">
-                  Rekap calon murid baru yang berasal dari lulusan RA Al Muttaqin, SDIT Al
-                  Muttaqin, serta SMP / Wustha Al Muttaqin berdasarkan data Asal Sekolah.
-                </p>
-              </div>
+              <h3
+                id="heading-alumni-muttaqin"
+                className="font-display text-base sm:text-lg font-bold text-[#111815]"
+              >
+                Alumni Lembaga Al Muttaqin
+                {unitFilter !== 'ALL' ? ` · ${UNIT_CONFIGS[unitFilter].shortName}` : ''}
+              </h3>
             </div>
 
             <div className="relative w-full lg:w-72 shrink-0">
@@ -646,7 +852,7 @@ export const AdminAnalyticsView: React.FC<AdminAnalyticsViewProps> = ({
                 {scopedAnalytics.alumniSummary.totalAlumni}
               </p>
               <p className="mt-1 text-[11px] text-[#4E5651] tabular-nums">
-                Non-Alumni / Umum: {scopedAnalytics.alumniSummary.nonAlumni} pendaftar
+                Umum: {scopedAnalytics.alumniSummary.nonAlumni} pendaftar
               </p>
             </button>
 
@@ -736,7 +942,9 @@ export const AdminAnalyticsView: React.FC<AdminAnalyticsViewProps> = ({
                 <th className="py-3 px-4 whitespace-nowrap">Nama Calon Murid</th>
                 <th className="py-3 px-4 whitespace-nowrap">Asal Sekolah</th>
                 <th className="py-3 px-4 whitespace-nowrap">Kategori Alumni</th>
-                <th className="py-3 px-4 whitespace-nowrap">Mendaftar ke</th>
+                {unitFilter === 'ALL' && (
+                  <th className="py-3 px-4 whitespace-nowrap">Mendaftar ke</th>
+                )}
                 <th className="py-3 px-4 sm:px-5 whitespace-nowrap">Daerah Pengajian</th>
               </tr>
             </thead>
@@ -744,10 +952,10 @@ export const AdminAnalyticsView: React.FC<AdminAnalyticsViewProps> = ({
               {visibleAlumniRecords.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={unitFilter === 'ALL' ? 6 : 5}
                     className="py-8 px-4 text-center text-sm text-[#4E5651]"
                   >
-                    Tidak ada pendaftar alumni Al Muttaqin yang sesuai dengan filter saat ini.
+                    Tidak ada pendaftar alumni Al Muttaqin pada filter ini.
                   </td>
                 </tr>
               ) : (
@@ -774,9 +982,11 @@ export const AdminAnalyticsView: React.FC<AdminAnalyticsViewProps> = ({
                           >)
                       )}
                     </td>
-                    <td className="py-3 px-4 font-semibold text-xs text-[#111815] whitespace-nowrap">
-                      {UNIT_CONFIGS[record.unit].shortName}
-                    </td>
+                    {unitFilter === 'ALL' && (
+                      <td className="py-3 px-4 font-semibold text-xs text-[#111815] whitespace-nowrap">
+                        {UNIT_CONFIGS[record.unit].shortName}
+                      </td>
+                    )}
                     <td className="py-3 px-4 sm:px-5 text-xs text-[#4E5651] whitespace-nowrap">
                       {record.pengajianDaerah || '-'} / {record.pengajianDesa || '-'}
                     </td>

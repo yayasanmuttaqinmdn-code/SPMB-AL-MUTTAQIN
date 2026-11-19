@@ -166,19 +166,13 @@ export const CommitteeSelectionView: React.FC<CommitteeSelectionViewProps> = ({
       {/* Intro Banner */}
       <div className="bg-white border border-[#E2E5E2] rounded-2xl p-4 sm:p-6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#E2E5E2]">
-          <div className="flex items-start gap-3">
+          <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-[#14532D]/10 text-[#14532D] flex items-center justify-center shrink-0">
               <ClipboardCheck className="w-5 h-5" />
             </div>
-            <div>
-              <h2 className="font-display text-lg sm:text-xl font-bold text-[#111815]">
-                Menu Panitia Seleksi Calon Siswa/i
-              </h2>
-              <p className="text-xs text-[#4E5651] mt-0.5">
-                Periksa kelengkapan berkas, pas foto 3×4, prestasi, dan tetapkan hasil seleksi
-                (Lulus, Cadangan, atau Tidak Lulus) per calon murid.
-              </p>
-            </div>
+            <h2 className="font-display text-lg sm:text-xl font-bold text-[#111815]">
+              Seleksi Calon Murid
+            </h2>
           </div>
 
           <div className="text-xs text-[#4E5651] bg-[#F6F7F6] border border-[#E2E5E2] rounded-lg px-3 py-2 shrink-0 tabular-nums space-y-0.5">

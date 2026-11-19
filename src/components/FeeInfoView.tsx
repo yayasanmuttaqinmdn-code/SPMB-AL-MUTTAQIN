@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowRight, Download, Wallet, X } from 'lucide-react';
+import { ArrowRight, X } from 'lucide-react';
 import type { FeeCategoryId, UnitId } from '../types/spmb.ts';
 import {
   FEE_ACADEMIC_YEAR,
@@ -8,9 +8,7 @@ import {
   formatRupiah,
   FOUNDATION_LOGO_PATH,
   getUnitLogoPath,
-  INSTITUTION_LOCATION,
   INSTITUTION_NAME,
-  OFFICIAL_FEE_PDF_PATH,
 } from '../utils/spmbLogic.ts';
 
 interface FeeInfoViewProps {
@@ -48,50 +46,29 @@ export const FeeInfoView: React.FC<FeeInfoViewProps> = ({ onRegisterForUnit }) =
   return (
     <div className="space-y-6 sm:space-y-8">
       {/* Header Banner */}
-      <section className="bg-white border border-[#E2E5E2] rounded-2xl p-5 sm:p-7 flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-        <div className="flex items-start gap-3.5 sm:gap-4">
+      <section className="bg-white border border-[#E2E5E2] rounded-2xl p-5 sm:p-6">
+        <div className="flex items-center gap-3.5 sm:gap-4">
           <img
             src={FOUNDATION_LOGO_PATH}
             alt="Logo Yayasan Pondok Pesantren Muttaqin"
             className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl object-contain bg-white border border-[#E2E5E2] p-0.5 shrink-0"
           />
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             <p className="text-xs font-semibold text-[#926C15]">
               {INSTITUTION_NAME} · Tahun Ajaran {FEE_ACADEMIC_YEAR}
             </p>
             <h1 className="font-display text-xl sm:text-2xl font-bold text-[#111815]">
               Informasi Biaya Pendaftaran &amp; Pendidikan
             </h1>
-            <p className="text-xs sm:text-sm text-[#4E5651] leading-relaxed max-w-2xl">
-              Rincian resmi biaya masuk peserta didik baru {INSTITUTION_LOCATION} untuk jenjang{' '}
-              <strong>PP</strong>, <strong>SMA</strong>, <strong>SMP</strong>,{' '}
-              <strong>SDIT</strong>, <strong>RA</strong>, dan <strong>KB</strong> (Putra &amp; Putri).
-            </p>
           </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-          <a
-            href={OFFICIAL_FEE_PDF_PATH}
-            download="Biaya-PPDB-2027-2028-PP-Muttaqin.pdf"
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-[#14532D] hover:bg-[#114626] rounded-lg transition-colors whitespace-nowrap"
-          >
-            <Download className="w-4 h-4" />
-            <span>Unduh Dokumen Biaya (PDF)</span>
-          </a>
         </div>
       </section>
 
       {/* 6-Card Summary Ringkasan Total per Jenjang */}
       <section className="space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1.5">
-          <h2 className="font-display text-base sm:text-lg font-bold text-[#111815]">
-            Ringkasan Total Biaya per Jenjang
-          </h2>
-          <span className="text-xs text-[#4E5651]">
-            Klik kotak jenjang di bawah untuk langsung menampilkan rincian biayanya
-          </span>
-        </div>
+        <h2 className="font-display text-base sm:text-lg font-bold text-[#111815]">
+          Rincian Biaya per Jenjang
+        </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
           {FEE_CATEGORY_ORDER.map((id) => {
@@ -119,7 +96,7 @@ export const FeeInfoView: React.FC<FeeInfoViewProps> = ({ onRegisterForUnit }) =
                       <h3 className="font-display text-sm sm:text-base font-bold text-[#111815] group-hover:text-[#14532D] transition-colors truncate">
                         {grp.title}
                       </h3>
-                      <p className="text-xs text-[#4E5651]">{grp.items.length} komponen biaya</p>
+                      <p className="text-xs text-[#4E5651]">{grp.items.length} item</p>
                     </div>
                   </div>
                   <span className="text-xs font-semibold text-[#14532D] whitespace-nowrap shrink-0">
@@ -129,13 +106,13 @@ export const FeeInfoView: React.FC<FeeInfoViewProps> = ({ onRegisterForUnit }) =
 
                 <div className="grid grid-cols-2 gap-2 pt-2.5 border-t border-[#EFF1EF] text-xs">
                   <div>
-                    <p className="text-[#4E5651]">Total Putra</p>
+                    <p className="text-[#4E5651]">Putra</p>
                     <p className="font-mono font-bold text-[#111815] tabular-nums mt-0.5">
                       {formatRupiah(grp.totalPutra)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-[#4E5651]">Total Putri</p>
+                    <p className="text-[#4E5651]">Putri</p>
                     <p className="font-mono font-bold text-[#14532D] tabular-nums mt-0.5">
                       {formatRupiah(grp.totalPutri)}
                     </p>
@@ -144,15 +121,6 @@ export const FeeInfoView: React.FC<FeeInfoViewProps> = ({ onRegisterForUnit }) =
               </button>
             );
           })}
-        </div>
-        <div className="pt-1 flex items-start gap-2 text-xs text-[#4E5651]">
-          <Wallet className="w-4 h-4 text-[#926C15] shrink-0 mt-0.5" />
-          <p className="leading-relaxed">
-            Nominal mengacu pada edaran resmi{' '}
-            <strong>Biaya Pendaftaran Peserta Didik Baru {FEE_ACADEMIC_YEAR}</strong> Yayasan Pondok
-            Pesantren Muttaqin Josenan Madiun. Bagian bertanda <strong>-</strong> menandakan tidak
-            dikenakan komponen tersebut.
-          </p>
         </div>
       </section>
 
@@ -310,39 +278,28 @@ export const FeeInfoView: React.FC<FeeInfoViewProps> = ({ onRegisterForUnit }) =
               </div>
 
               {/* Modal Footer Actions */}
-              <div className="px-4 sm:px-6 py-3.5 border-t border-[#E2E5E2] bg-white flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2.5">
-                <a
-                  href={OFFICIAL_FEE_PDF_PATH}
-                  download="Biaya-PPDB-2027-2028-PP-Muttaqin.pdf"
-                  className="inline-flex items-center justify-center gap-2 px-3.5 py-2 text-xs font-semibold text-[#4E5651] bg-[#F2F4F2] hover:bg-[#E7EAE7] rounded-lg transition-colors whitespace-nowrap"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Unduh PDF Resmi</span>
-                </a>
-
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                  {modalGroup.registerUnit && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const target = modalGroup.registerUnit!;
-                        setActiveModalCategory(null);
-                        onRegisterForUnit(target);
-                      }}
-                      className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-[#14532D] hover:bg-[#114626] rounded-lg transition-colors whitespace-nowrap"
-                    >
-                      <span>Daftar {modalGroup.shortName}</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                  )}
+              <div className="px-4 sm:px-6 py-3.5 border-t border-[#E2E5E2] bg-white flex flex-col sm:flex-row sm:items-center justify-end gap-2">
+                {modalGroup.registerUnit && (
                   <button
                     type="button"
-                    onClick={() => setActiveModalCategory(null)}
-                    className="inline-flex items-center justify-center px-4 py-2 text-xs font-semibold text-[#111815] bg-white border border-[#D4D9D4] hover:bg-[#F2F4F2] rounded-lg transition-colors whitespace-nowrap"
+                    onClick={() => {
+                      const target = modalGroup.registerUnit!;
+                      setActiveModalCategory(null);
+                      onRegisterForUnit(target);
+                    }}
+                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-[#14532D] hover:bg-[#114626] rounded-lg transition-colors whitespace-nowrap"
                   >
-                    Tutup
+                    <span>Daftar {modalGroup.shortName}</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
                   </button>
-                </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setActiveModalCategory(null)}
+                  className="inline-flex items-center justify-center px-4 py-2 text-xs font-semibold text-[#111815] bg-white border border-[#D4D9D4] hover:bg-[#F2F4F2] rounded-lg transition-colors whitespace-nowrap"
+                >
+                  Tutup
+                </button>
               </div>
             </div>
           </div>

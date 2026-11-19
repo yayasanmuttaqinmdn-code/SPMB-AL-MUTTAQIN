@@ -51,9 +51,7 @@ export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
               )}
               <div className="text-xs text-[#4E5651]">
                 <p className="font-semibold text-[#14532D]">{INSTITUTION_NAME}</p>
-                <p>
-                  {INSTITUTION_LOCATION} · Tahun Ajaran {ACADEMIC_YEAR}
-                </p>
+                <p>Tahun Ajaran {ACADEMIC_YEAR}</p>
               </div>
             </div>
 
@@ -62,9 +60,7 @@ export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
             </h1>
 
             <p className="text-sm text-[#4E5651] leading-relaxed max-w-xl">
-              Klik salah satu jenjang pendidikan tujuan (<strong>RA / TK</strong>,{' '}
-              <strong>SDIT</strong>, <strong>SMP</strong>, atau <strong>SMA</strong>) di bawah ini
-              untuk langsung masuk ke formulir pendaftaran dan mengunduh bukti PDF resmi.
+              Pendaftaran peserta didik baru RA / TK, SDIT, SMP, dan SMA.
             </p>
           </div>
 
@@ -81,7 +77,7 @@ export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
               onClick={onOpenDashboard}
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-[#111815] bg-[#F2F4F2] hover:bg-[#E7EAE7] rounded-lg transition-colors whitespace-nowrap"
             >
-              <span>Dashboard Pendaftar ({stats.totalCount})</span>
+              <span>Dashboard ({stats.totalCount})</span>
             </button>
             <button
               type="button"
@@ -89,7 +85,7 @@ export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-[#14532D] bg-white border border-[#D4D9D4] hover:border-[#14532D] rounded-lg transition-colors whitespace-nowrap"
             >
               <FileSearch className="w-4 h-4" />
-              <span>Cek Status Pendaftaran</span>
+              <span>Cek Status</span>
             </button>
             {onOpenFees && (
               <button
@@ -123,8 +119,8 @@ export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
           )}
           <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/75 via-black/35 to-transparent text-white">
             <p className="text-xs font-medium text-white/90">
-              Total Pendaftar Sementara: <strong className="font-mono">{stats.totalCount}</strong>{' '}
-              dari {stats.totalQuota} kuota
+              Total Pendaftar: <strong className="font-mono">{stats.totalCount}</strong> /{' '}
+              {stats.totalQuota} kuota
             </p>
           </div>
         </div>
@@ -132,14 +128,9 @@ export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
 
       {/* Direct Unit Selection Cards (Clicking directly opens unit registration form) */}
       <section id="pilih-lembaga" className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
-          <h2 className="font-display text-lg font-bold text-[#111815]">
-            Pilih Lembaga Pendaftaran
-          </h2>
-          <span className="text-xs text-[#4E5651]">
-            Klik kartu lembaga untuk langsung mengisi formulir pendaftaran
-          </span>
-        </div>
+        <h2 className="font-display text-lg font-bold text-[#111815]">
+          Pilih Lembaga Pendaftaran
+        </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
           {UNIT_ORDER.map((unit) => {
@@ -170,7 +161,6 @@ export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
                   <h3 className="font-display text-base font-bold text-[#111815] group-hover:text-[#14532D] transition-colors">
                     {cfg.fullName}
                   </h3>
-                  <p className="text-xs text-[#4E5651] leading-relaxed">{cfg.tagline}</p>
 
                   {st.quotaPutra !== undefined && st.quotaPutri !== undefined && (
                     <div className="grid grid-cols-2 gap-2 pt-1 text-[11px] font-mono tabular-nums text-[#4E5651]">

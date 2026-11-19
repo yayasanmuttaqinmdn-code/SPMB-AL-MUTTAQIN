@@ -218,11 +218,10 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
               <Lock className="w-5 h-5" />
             </div>
             <h1 className="font-display text-xl sm:text-2xl font-bold text-[#111815]">
-              Login Khusus Admin Panitia
+              Login Admin Panitia
             </h1>
             <p className="text-sm text-[#4E5651]">
-              Masuk untuk mengatur keperluan data pendaftar per lembaga, memverifikasi berkas, dan
-              menghubungkan Google Sheets.
+              Masuk untuk mengelola data pendaftar dan pengaturan formulir.
             </p>
           </div>
 
@@ -501,12 +500,8 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
           </div>
           <div className="min-w-0">
             <h1 className="font-display text-lg sm:text-2xl font-bold text-[#111815]">
-              Menu Khusus Admin Panitia SPMB
+              Menu Admin SPMB
             </h1>
-            <p className="text-xs text-[#4E5651]">
-              Atur keperluan data formulir per lembaga, kelola data pendaftar, dan sinkronkan Google
-              Sheets.
-            </p>
           </div>
         </div>
 
@@ -594,9 +589,9 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
         </div>
       </div>
 
-      {/* Sub-tab 0: Dashboard Admin (Sebaran Pengajian, Alumni & Gender) */}
+      {/* Sub-tab 0: Dashboard Admin (Rekap Terpisah TK, SD, SMP, SMA) */}
       {subTab === 'analytics' && (
-        <AdminAnalyticsView registrations={registrations} />
+        <AdminAnalyticsView registrations={registrations} formConfig={formConfig} />
       )}
 
       {/* Sub-tab 1: Keperluan Data / Form Builder */}
@@ -660,14 +655,9 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
             <div className="lg:col-span-7 space-y-5 sm:space-y-6">
               <div className="bg-white border border-[#E2E5E2] rounded-2xl p-4 sm:p-6 space-y-5">
                 <div className="flex items-center justify-between gap-4 pb-3 border-b border-[#E2E5E2]">
-                  <div>
-                    <h2 className="font-display text-lg font-bold text-[#111815]">
-                      Daftar Keperluan Data — {UNIT_CONFIGS[editingUnit].fullName}
-                    </h2>
-                    <p className="text-xs text-[#4E5651]">
-                      Ketik, ubah, wajibkan, atau hapus kolom yang harus diisi pendaftar.
-                    </p>
-                  </div>
+                  <h2 className="font-display text-lg font-bold text-[#111815]">
+                    Pengaturan Formulir — {UNIT_CONFIGS[editingUnit].fullName}
+                  </h2>
                 </div>
 
                 {/* Quota & Instruction */}
@@ -952,14 +942,12 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
               {/* Standard Fields Required / Optional Matrix */}
               <div className="bg-white border border-[#E2E5E2] rounded-2xl p-4 sm:p-6 space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pb-3 border-b border-[#E2E5E2]">
-                  <div className="space-y-1">
+                  <div className="space-y-0.5">
                     <h2 className="font-display text-lg font-bold text-[#111815]">
-                      Pengaturan Kolom Wajib &amp; Tidak Wajib (Opsional)
+                      Kolom Wajib &amp; Tidak Wajib
                     </h2>
                     <p className="text-xs text-[#4E5651]">
-                      Centang kolom yang <strong>Wajib Diisi</strong> atau matikan centang agar menjadi{' '}
-                      <strong>Tidak Wajib (Opsional)</strong> untuk pendaftar{' '}
-                      {UNIT_CONFIGS[editingUnit].fullName}.
+                      Atur kolom wajib diisi untuk pendaftar {UNIT_CONFIGS[editingUnit].shortName}.
                     </p>
                   </div>
 
@@ -1162,7 +1150,7 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
 
                 <div className="pt-2 border-t border-[#E2E5E2] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <p className="text-[11px] text-[#4E5651]">
-                    Catatan: Kolom bertanda <strong className="text-[#14532D]">Wajib Utama</strong> selalu aktif untuk menjaga pencatatan kuota &amp; database Google Sheets.
+                    Kolom <strong className="text-[#14532D]">Wajib Utama</strong> selalu aktif.
                   </p>
                   <button
                     type="button"
@@ -1184,13 +1172,8 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
                 className="bg-white border border-[#E2E5E2] rounded-2xl p-4 sm:p-6 space-y-4"
               >
                 <h3 className="font-display text-lg font-bold text-[#111815]">
-                  + Tambah Keperluan Data Baru
+                  + Tambah Kolom Baru
                 </h3>
-                <p className="text-xs text-[#4E5651]">
-                  Ketik data tambahan apa saja yang harus diisi oleh calon siswa{' '}
-                  {UNIT_CONFIGS[editingUnit].shortName} (contoh: Ukuran Seragam, Nomor KK, Golongan
-                  Darah).
-                </p>
 
                 <div>
                   <label
@@ -1288,7 +1271,7 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
               {/* Required Physical Docs Editor */}
               <div className="bg-white border border-[#E2E5E2] rounded-2xl p-4 sm:p-6 space-y-4">
                 <h3 className="font-display text-base font-bold text-[#111815]">
-                  Daftar Berkas Daftar Ulang (Tercetak di PDF)
+                  Berkas Daftar Ulang
                 </h3>
                 <ul className="space-y-2 text-xs text-[#4E5651]">
                   {activeDraft.requiredDocs.map((docItem, idx) => (

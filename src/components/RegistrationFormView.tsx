@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, Camera, CheckCircle2, Copy, FileText, Trash2, Upload } from 'lucide-react';
+import { ArrowLeft, Camera, Copy, FileText, Trash2, Upload } from 'lucide-react';
 import type {
   FormSchemaConfig,
   Gender,
@@ -99,11 +99,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
   const isReq = (key: StandardFormFieldKey): boolean =>
     isStandardFieldRequired(form.unit, key, currentUnitSchema);
   const reqMark = (key: StandardFormFieldKey) =>
-    isReq(key) ? (
-      <span className="text-red-600">*</span>
-    ) : (
-      <span className="text-[#4E5651] font-normal">(Opsional)</span>
-    );
+    isReq(key) ? <span className="text-red-600">*</span> : null;
 
   const updateField = <K extends keyof RegistrationInput>(
     field: K,
@@ -286,7 +282,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
         </button>
 
         <span className="text-xs font-semibold text-[#14532D]">
-          Portal Pendaftaran {unitCfg.shortName}
+          {unitCfg.shortName}
         </span>
       </div>
 
@@ -305,17 +301,14 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
           <div className="space-y-1 min-w-0">
             <p className="text-xs text-[#4E5651]">
               {editingRecord
-                ? `Edit Data Pendaftar (Mode Admin) · ${editingRecord.noPendaftaran}`
-                : `Formulir Pendaftaran Online · ${unitCfg.ageRange}`}
+                ? `Edit Data (Admin) · ${editingRecord.noPendaftaran}`
+                : unitCfg.ageRange}
             </p>
             <h1 className="font-display text-xl sm:text-3xl font-bold text-[#111815]">
-              Menu Pengisian Data {unitCfg.fullName}
+              Formulir Pendaftaran {unitCfg.fullName}
             </h1>
-            <p className="text-sm text-[#4E5651]">
-              {currentUnitSchema.instructions || unitCfg.tagline}{' '}
-              <span className="font-medium text-[#111815]">
-                Kolom bertanda * wajib diisi lengkap; kolom bertanda (Opsional) boleh dikosongkan.
-              </span>
+            <p className="text-xs sm:text-sm text-[#4E5651]">
+              Kolom bertanda <span className="text-red-600 font-semibold">*</span> wajib diisi.
             </p>
             {isGenderSplitQuotaUnit(form.unit) && (() => {
               const qTarget = resolveUnitQuotaTargets(form.unit, currentUnitSchema);
@@ -380,13 +373,12 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
             <div className="flex-1 min-w-0 space-y-2">
               <div>
                 <p className="text-xs font-semibold text-[#111815]">
-                  Upload Pas Foto Calon Murid (3×4){' '}
+                  Pas Foto Calon Murid (3×4){' '}
                   {(!editingRecord || Boolean(editingRecord.pasFotoDataUrl)) &&
                     reqMark('pasFotoDataUrl')}
                 </p>
-                <p className="text-xs text-[#4E5651] mt-0.5 leading-relaxed">
-                  Gunakan foto formal berlatar polos (JPG, PNG, atau WebP). Sistem otomatis
-                  menyesuaikan ukuran dan proporsi pas foto 3×4 untuk bukti pendaftaran PDF.
+                <p className="text-xs text-[#4E5651] mt-0.5">
+                  Foto formal JPG, PNG, atau WebP.
                 </p>
               </div>
 
@@ -475,7 +467,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
                 onChange={(e) => updateField('agama', e.target.value)}
                 className={inputClass('agama')}
               >
-                {!isReq('agama') && <option value="">-- Tidak Diisi (Opsional) --</option>}
+                {!isReq('agama') && <option value="">-- Pilih --</option>}
                 {AGAMA_OPTIONS.map((ag) => (
                   <option key={ag} value={ag}>
                     {ag}
@@ -712,7 +704,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
                     onChange={(e) => updateField('golDarah', e.target.value)}
                     className={inputClass('golDarah')}
                   >
-                    {!isReq('golDarah') && <option value="">-- Tidak Diisi (Opsional) --</option>}
+                    {!isReq('golDarah') && <option value="">-- Pilih --</option>}
                     {GOL_DARAH_OPTIONS.map((g) => (
                       <option key={g} value={g}>
                         {g}
@@ -1054,7 +1046,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
                     className={inputClass('pendidikanAyah')}
                   >
                     {!isReq('pendidikanAyah') && (
-                      <option value="">-- Tidak Diisi (Opsional) --</option>
+                      <option value="">-- Pilih --</option>
                     )}
                     {PENDIDIKAN_OPTIONS.map((p) => (
                       <option key={p} value={p}>
@@ -1079,7 +1071,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
                   className={inputClass('penghasilanAyah')}
                 >
                   {!isReq('penghasilanAyah') && (
-                    <option value="">-- Tidak Diisi (Opsional) --</option>
+                    <option value="">-- Pilih --</option>
                   )}
                   {PENGHASILAN_OPTIONS.map((p) => (
                     <option key={p} value={p}>
@@ -1256,7 +1248,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
                     className={inputClass('pendidikanIbu')}
                   >
                     {!isReq('pendidikanIbu') && (
-                      <option value="">-- Tidak Diisi (Opsional) --</option>
+                      <option value="">-- Pilih --</option>
                     )}
                     {PENDIDIKAN_OPTIONS.map((p) => (
                       <option key={p} value={p}>
@@ -1281,7 +1273,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
                   className={inputClass('penghasilanIbu')}
                 >
                   {!isReq('penghasilanIbu') && (
-                    <option value="">-- Tidak Diisi (Opsional) --</option>
+                    <option value="">-- Pilih --</option>
                   )}
                   {PENGHASILAN_OPTIONS.map((p) => (
                     <option key={p} value={p}>
@@ -1599,13 +1591,10 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
         {/* ================================================================ */}
         {currentUnitSchema.fields.length > 0 && (
           <section className="space-y-4">
-            <div className="bg-[#F2F4F2] border border-[#D4D9D4] px-4 py-2.5 rounded-lg flex flex-wrap items-center justify-between gap-2">
+            <div className="bg-[#F2F4F2] border border-[#D4D9D4] px-4 py-2.5 rounded-lg">
               <h2 className="font-display text-sm font-bold text-[#14532D] uppercase">
-                04. Keperluan Data Khusus Jenjang {unitCfg.shortName}
+                04. Data Khusus {unitCfg.shortName}
               </h2>
-              <span className="text-xs text-[#4E5651]">
-                Diatur oleh Panitia {unitCfg.fullName}
-              </span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1621,11 +1610,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
                       className="block text-xs font-semibold text-[#111815] mb-1"
                     >
                       {field.label}{' '}
-                      {field.required ? (
-                        <span className="text-red-600">*</span>
-                      ) : (
-                        <span className="text-[#4E5651] font-normal">(Opsional)</span>
-                      )}
+                      {field.required && <span className="text-red-600">*</span>}
                     </label>
 
                     {field.type === 'select' ? (
@@ -1691,12 +1676,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
         )}
 
         {/* Submit Bar */}
-        <div className="pt-5 border-t border-[#E2E5E2] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-2 text-xs text-[#4E5651]">
-            <CheckCircle2 className="w-4 h-4 text-[#14532D] shrink-0" />
-            <span>Simpan data untuk menerbitkan bukti pendaftaran PDF anak Anda.</span>
-          </div>
-
+        <div className="pt-5 border-t border-[#E2E5E2] flex justify-end">
           <button
             type="submit"
             disabled={isSubmitting}
@@ -1707,7 +1687,7 @@ export const RegistrationFormView: React.FC<RegistrationFormViewProps> = ({
               {isSubmitting
                 ? 'Menyimpan Data...'
                 : editingRecord
-                  ? 'Simpan Perubahan Data'
+                  ? 'Simpan Perubahan'
                   : 'Simpan & Terbitkan Bukti PDF'}
             </span>
           </button>

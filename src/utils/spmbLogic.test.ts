@@ -7,6 +7,7 @@ import {
   classifyPengajianRegion,
   columnIndexToLetter,
   computeAdminAnalytics,
+  computePerUnitRecaps,
   computeSelectionStats,
   computeStatsFromUnitCounts,
   computeUnitStats,
@@ -1067,6 +1068,109 @@ test('FEE_SCHEDULES match official BIAYA_PPDB_2027 PDF totals for all 6 categori
 
   assert.equal(formatRupiah(3695000), 'Rp 3.695.000');
   assert.equal(formatRupiah(null), '-');
+});
+
+test('computePerUnitRecaps strictly separates TK, SDIT, SMP, and SMA recap metrics and split quotas', () => {
+  const customCfg = normalizeFormSchemaConfig({
+    RA_TK: { ...DEFAULT_FORM_CONFIG.RA_TK, quota: 50 },
+    SDIT: { ...DEFAULT_FORM_CONFIG.SDIT, quota: 80 },
+    SMP: { ...DEFAULT_FORM_CONFIG.SMP, quotaPutra: 40, quotaPutri: 45 },
+    SMA: { ...DEFAULT_FORM_CONFIG.SMA, quotaPutra: 35, quotaPutri: 35 },
+  });
+
+  const records = [
+    makeRecord({
+      id: 'tk-1',
+      unit: 'RA_TK',
+      jenisKelamin: 'Laki-laki',
+      asalSekolah: '-',
+      pengajianDaerah: 'KOTA MADIUN',
+      statusVerifikasi: 'Terverifikasi Panitia',
+      statusSeleksi: 'Lulus Seleksi',
+    }),
+    makeRecord({
+      id: 'sd-1',
+      unit: 'SDIT',
+      jenisKelamin: 'Perempuan',
+      asalSekolah: 'RA Al Muttaqin',
+      pengajianDaerah: 'KAB. MADIUN',
+      statusVerifikasi: 'Menunggu Verifikasi Berkas',
+      statusSeleksi: 'Dalam Proses Seleksi',
+    }),
+    makeRecord({
+      id: 'smp-1',
+      unit: 'SMP',
+      jenisKelamin: 'Laki-laki',
+      asalSekolah: 'SDIT Al Muttaqin',
+      pengajianDaerah: 'KOTA MADIUN',
+      statusVerifikasi: 'Terverifikasi Panitia',
+      statusSeleksi: 'Lulus Seleksi',
+    }),
+    makeRecord({
+      id: 'smp-2',
+      unit: 'SMP',
+      jenisKelamin: 'Perempuan',
+      asalSekolah: 'SDN 1 Taman',
+      pengajianDaerah: 'PONOROGO',
+      statusVerifikasi: 'Menunggu Verifikasi Berkas',
+      statusSeleksi: 'Cadangan',
+    }),
+    makeRecord({
+      id: 'sma-1',
+      unit: 'SMA',
+      jenisKelamin: 'Perempuan',
+      asalSekolah: 'SMP Muttaqin Josenan',
+      pengajianDaerah: 'KOTA MADIUN',
+      statusVerifikasi: 'Terverifikasi Panitia',
+      statusSeleksi: 'Lulus Seleksi',
+    }),
+  ];
+
+  const recaps = computePerUnitRecaps(records, customCfg);
+
+  // TK isolated
+  assert.equal(recaps.RA_TK.totalCount, 1);
+  assert.equal(recaps.RA_TK.quota, 50);
+  assert.equal(recaps.RA_TK.remaining, 49);
+  assert.equal(recaps.RA_TK.quotaPutra, undefined);
+  assert.equal(recaps.RA_TK.pengajian.kotaMadiun, 1);
+  assert.equal(recaps.RA_TK.alumni.totalAlumni, 0);
+  assert.equal(recaps.RA_TK.verifiedCount, 1);
+  assert.equal(recaps.RA_TK.selectionStats.lulus, 1);
+
+  // SDIT isolated
+  assert.equal(recaps.SDIT.totalCount, 1);
+  assert.equal(recaps.SDIT.quota, 80);
+  assert.equal(recaps.SDIT.pengajian.kabMadiun, 1);
+  assert.equal(recaps.SDIT.alumni.totalAlumni, 1);
+  assert.equal(recaps.SDIT.verifiedCount, 0);
+  assert.equal(recaps.SDIT.selectionStats.proses, 1);
+
+  // SMP isolated with Putra/Putri split
+  assert.equal(recaps.SMP.totalCount, 2);
+  assert.equal(recaps.SMP.quota, 85);
+  assert.equal(recaps.SMP.quotaPutra, 40);
+  assert.equal(recaps.SMP.quotaPutri, 45);
+  assert.equal(recaps.SMP.maleCount, 1);
+  assert.equal(recaps.SMP.femaleCount, 1);
+  assert.equal(recaps.SMP.remainingPutra, 39);
+  assert.equal(recaps.SMP.remainingPutri, 44);
+  assert.equal(recaps.SMP.pengajian.kotaMadiun, 1);
+  assert.equal(recaps.SMP.pengajian.luarMadiun, 1);
+  assert.equal(recaps.SMP.alumni.totalAlumni, 1);
+  assert.equal(recaps.SMP.alumni.nonAlumni, 1);
+  assert.equal(recaps.SMP.selectionStats.lulus, 1);
+  assert.equal(recaps.SMP.selectionStats.cadangan, 1);
+
+  // SMA isolated with Putra/Putri split
+  assert.equal(recaps.SMA.totalCount, 1);
+  assert.equal(recaps.SMA.quota, 70);
+  assert.equal(recaps.SMA.maleCount, 0);
+  assert.equal(recaps.SMA.femaleCount, 1);
+  assert.equal(recaps.SMA.remainingPutra, 35);
+  assert.equal(recaps.SMA.remainingPutri, 34);
+  assert.equal(recaps.SMA.alumni.totalAlumni, 1);
+  assert.equal(recaps.SMA.verifiedCount, 1);
 });
 
 

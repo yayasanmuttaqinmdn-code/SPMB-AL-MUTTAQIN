@@ -273,19 +273,10 @@ export const SheetsSyncView: React.FC<SheetsSyncViewProps> = ({
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
-      <div className="space-y-1.5 pb-4 border-b border-[#E2E5E2]">
-        <p className="text-xs font-medium text-[#4E5651]">
-          Panel Panitia SPMB · Penyimpanan Database Spreadsheet
-        </p>
+      <div className="pb-4 border-b border-[#E2E5E2]">
         <h1 className="font-display text-2xl sm:text-3xl font-bold text-[#111815]">
-          Integrasi &amp; Penyimpanan Google Spreadsheet
+          Integrasi Google Spreadsheet
         </h1>
-        <p className="text-sm text-[#4E5651] max-w-3xl">
-          Secara bawaan data disimpan dalam <strong>1 file Google Spreadsheet</strong> yang
-          otomatis memiliki halaman/sheet berbeda untuk tiap lembaga (<strong>RA_TK</strong>,{' '}
-          <strong>SDIT</strong>, <strong>SMP</strong>, <strong>SMA</strong>, dan{' '}
-          <strong>Ringkasan_Dashboard</strong>).
-        </p>
       </div>
 
       {/* Mode Selector: 1 File Spreadsheet (Beda Halaman/Tab) vs 4 File Terpisah */}
@@ -319,12 +310,10 @@ export const SheetsSyncView: React.FC<SheetsSyncViewProps> = ({
               </div>
               <div className="space-y-0.5 min-w-0">
                 <p className="text-sm font-bold text-[#111815]">
-                  1 File Spreadsheet (Beda Halaman / Sheet per Lembaga)
+                  1 File Spreadsheet (Tab per Lembaga)
                 </p>
                 <p className="text-xs text-[#4E5651]">
-                  Cukup 1 file saja, namun di dalamnya otomatis dibuat 4 halaman sheet terpisah:{' '}
-                  <strong>RA_TK</strong>, <strong>SDIT</strong>, <strong>SMP</strong>, dan{' '}
-                  <strong>SMA</strong>.
+                  Otomatis membagi tab RA_TK, SDIT, SMP, dan SMA.
                 </p>
               </div>
             </div>
@@ -351,11 +340,10 @@ export const SheetsSyncView: React.FC<SheetsSyncViewProps> = ({
               </div>
               <div className="space-y-0.5 min-w-0">
                 <p className="text-sm font-bold text-[#111815]">
-                  4 File Spreadsheet Terpisah (Opsional)
+                  4 File Spreadsheet Terpisah
                 </p>
                 <p className="text-xs text-[#4E5651]">
-                  Gunakan jika panitia ingin memisahkan menjadi 4 file Google Drive berbeda (1 file
-                  per lembaga).
+                  Pisahkan ke 4 file Google Drive berbeda (1 file per lembaga).
                 </p>
               </div>
             </div>
@@ -365,7 +353,7 @@ export const SheetsSyncView: React.FC<SheetsSyncViewProps> = ({
         {!isPerUnitMode && (
           <div className="pt-2 border-t border-[#E2E5E2]/80">
             <p className="text-xs font-medium text-[#4E5651] mb-2">
-              Halaman / tab sheet yang otomatis diisi di dalam 1 file Spreadsheet Anda:
+              Tab dalam Spreadsheet:
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
               {UNIT_ORDER.map((unit) => {
@@ -849,38 +837,18 @@ export const SheetsSyncView: React.FC<SheetsSyncViewProps> = ({
 
             {isPerUnitMode ? (
               <p className="text-xs text-[#4E5651] leading-relaxed">
-                Gunakan <strong>1 URL Apps Script Utama</strong> +{' '}
-                <strong>4 Link Google Sheet</strong> di bawah (atau URL <code className="font-mono">/exec</code>{' '}
-                khusus tiap lembaga) agar semua perangkat tersinkron langsung ke Google Sheet tanpa
-                Firebase.
+                Gunakan URL Apps Script utama + link Sheet per jenjang untuk sinkronisasi otomatis.
               </p>
             ) : (
               <p className="text-xs text-[#4E5651] leading-relaxed">
-                Menghubungkan seluruh perangkat secara real-time langsung ke{' '}
-                <strong>Google Spreadsheet</strong> tanpa Firebase — mendukung tulis &amp; baca 2
-                arah untuk tab <code>RA_TK</code>, <code>SDIT</code>, <code>SMP</code>,{' '}
-                <code>SMA</code>, <code>Ringkasan_Dashboard</code>, dan{' '}
-                <code>Konfigurasi_Form</code>.
+                Sinkronisasi 2 arah langsung ke Google Spreadsheet untuk seluruh perangkat.
               </p>
             )}
 
-            <ol className="text-xs text-[#4E5651] space-y-1.5 list-decimal pl-4 bg-[#F6F7F6] border border-[#E2E5E2] rounded-xl p-3.5">
-              <li>
-                Buka Google Sheet, klik <strong>Ekstensi &gt; Apps Script</strong>, hapus kode lama,
-                tempel kode terbaru dari <strong>Salin Kode Apps Script</strong>, lalu simpan.
-              </li>
-              <li>
-                Klik <strong>Terapkan &gt; Deployment baru</strong> (atau{' '}
-                <strong>Kelola Deployment &gt; Edit &gt; Versi baru</strong>) → jenis{' '}
-                <strong>Aplikasi Web</strong> → Jalankan sebagai <strong>Saya</strong> → Yang
-                memiliki akses: <strong>Siapa saja (Anyone)</strong> → salin URL{' '}
-                <code className="font-mono">/exec</code>.
-              </li>
-              <li>
-                Tempel URL <code className="font-mono">/exec</code> di bawah untuk sinkronisasi
-                otomatis antar perangkat, lalu tambahkan ke Environment Variables Vercel agar aktif
-                permanen di semua HP &amp; laptop.
-              </li>
+            <ol className="text-xs text-[#4E5651] space-y-1 list-decimal pl-4 bg-[#F6F7F6] border border-[#E2E5E2] rounded-xl p-3.5">
+              <li>Buka Google Sheet → <strong>Ekstensi &gt; Apps Script</strong> → tempel kode di bawah.</li>
+              <li><strong>Terapkan &gt; Aplikasi Web</strong> (Akses: <strong>Siapa saja</strong>) → salin URL <code className="font-mono">/exec</code>.</li>
+              <li>Tempel URL <code className="font-mono">/exec</code> di form bawah.</li>
             </ol>
 
             <div className="flex flex-wrap items-center gap-2">

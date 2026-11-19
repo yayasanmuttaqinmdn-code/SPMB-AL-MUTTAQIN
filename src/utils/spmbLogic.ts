@@ -1794,6 +1794,93 @@ export function computeAdminAnalytics(
   };
 }
 
+export interface UnitAdminRecap {
+  unit: UnitId;
+  shortName: string;
+  fullName: string;
+  totalCount: number;
+  quota: number;
+  remaining: number;
+  quotaPutra?: number;
+  quotaPutri?: number;
+  remainingPutra?: number;
+  remainingPutri?: number;
+  maleCount: number;
+  femaleCount: number;
+  malePct: number;
+  femalePct: number;
+  verifiedCount: number;
+  unverifiedCount: number;
+  selectionStats: SelectionStatsSummary;
+  pengajian: {
+    kotaMadiun: number;
+    kabMadiun: number;
+    madiunCombined: number;
+    luarMadiun: number;
+  };
+  alumni: {
+    totalAlumni: number;
+    nonAlumni: number;
+  };
+}
+
+export function computePerUnitRecaps(
+  records: RegistrationRecord[],
+  formConfig: FormSchemaConfig = DEFAULT_FORM_CONFIG
+): Record<UnitId, UnitAdminRecap> {
+  const result = {} as Record<UnitId, UnitAdminRecap>;
+
+  for (const unit of UNIT_ORDER) {
+    const cfg = UNIT_CONFIGS[unit];
+    const resolvedQuota = resolveUnitQuotaTargets(unit, formConfig[unit]);
+    const unitRecords = records.filter((r) => r.unit === unit);
+    const unitAnalytics = computeAdminAnalytics(unitRecords);
+    const selectionStats = computeSelectionStats(unitRecords);
+    const maleCount = unitAnalytics.totalMale;
+    const femaleCount = unitAnalytics.totalFemale;
+    const totalCount = unitRecords.length;
+    const verifiedCount = unitRecords.filter(
+      (r) => r.statusVerifikasi === 'Terverifikasi Panitia'
+    ).length;
+
+    result[unit] = {
+      unit,
+      shortName: cfg.shortName,
+      fullName: cfg.fullName,
+      totalCount,
+      quota: resolvedQuota.quota,
+      remaining: Math.max(0, resolvedQuota.quota - totalCount),
+      ...(resolvedQuota.quotaPutra !== undefined && resolvedQuota.quotaPutri !== undefined
+        ? {
+            quotaPutra: resolvedQuota.quotaPutra,
+            quotaPutri: resolvedQuota.quotaPutri,
+            remainingPutra: Math.max(0, resolvedQuota.quotaPutra - maleCount),
+            remainingPutri: Math.max(0, resolvedQuota.quotaPutri - femaleCount),
+          }
+        : {}),
+      maleCount,
+      femaleCount,
+      malePct: totalCount > 0 ? Math.round((maleCount / totalCount) * 100) : 0,
+      femalePct: totalCount > 0 ? Math.round((femaleCount / totalCount) * 100) : 0,
+      verifiedCount,
+      unverifiedCount: Math.max(0, totalCount - verifiedCount),
+      selectionStats,
+      pengajian: {
+        kotaMadiun: unitAnalytics.pengajianSummary.kotaMadiun,
+        kabMadiun: unitAnalytics.pengajianSummary.kabMadiun,
+        madiunCombined: unitAnalytics.pengajianSummary.madiunCombined,
+        luarMadiun: unitAnalytics.pengajianSummary.luarMadiun,
+      },
+      alumni: {
+        totalAlumni: unitAnalytics.alumniSummary.totalAlumni,
+        nonAlumni: unitAnalytics.alumniSummary.nonAlumni,
+      },
+    };
+  }
+
+  return result;
+}
+
 export function extractSpreadsheetIdShared(input: string): string {
   const trimmed = (input || '').trim();
   const urlMatch = /\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/.exec(trimmed);

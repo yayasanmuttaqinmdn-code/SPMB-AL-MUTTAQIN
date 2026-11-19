@@ -2197,14 +2197,14 @@ export default function App() {
               onClick={() => setActiveTab('lookup')}
               className="hover:text-[#14532D]"
             >
-              Cek Status Pendaftaran
+              Cek Status
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('admin')}
               className="hover:text-[#14532D]"
             >
-              Menu Admin
+              Admin
             </button>
           </div>
         </div>

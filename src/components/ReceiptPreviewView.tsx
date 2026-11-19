@@ -115,7 +115,7 @@ export const ReceiptPreviewView: React.FC<ReceiptPreviewViewProps> = ({
           className="inline-flex items-center gap-2 text-sm font-medium text-[#4E5651] hover:text-[#111815] self-start"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Kembali ke Portal Masuk</span>
+          <span>Kembali ke Portal</span>
         </button>
 
         <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2.5 sm:gap-3">
@@ -126,7 +126,7 @@ export const ReceiptPreviewView: React.FC<ReceiptPreviewViewProps> = ({
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-[#111815] bg-white border border-[#D4D9D4] rounded-lg hover:bg-[#F2F4F2] whitespace-nowrap"
             >
               <Edit3 className="w-4 h-4" />
-              <span>Edit Data (Admin)</span>
+              <span>Edit Data</span>
             </button>
           )}
           <button
@@ -136,7 +136,7 @@ export const ReceiptPreviewView: React.FC<ReceiptPreviewViewProps> = ({
             className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-[#14532D] hover:bg-[#114626] rounded-lg transition-colors whitespace-nowrap disabled:opacity-60"
           >
             <Download className="w-4 h-4" />
-            <span>{isDownloading ? 'Menyiapkan PDF...' : 'Unduh Bukti Pendaftaran (PDF)'}</span>
+            <span>{isDownloading ? 'Menyiapkan PDF...' : 'Unduh PDF'}</span>
           </button>
         </div>
       </div>
@@ -418,7 +418,7 @@ export const ReceiptPreviewView: React.FC<ReceiptPreviewViewProps> = ({
           {/* Checklist Berkas */}
           <div className="p-5 rounded-xl bg-[#F6F7F6] border border-[#E2E5E2] space-y-2">
             <h3 className="text-sm font-semibold text-[#111815]">
-              Berkas yang Perlu Dibawa Saat Daftar Ulang ({unitCfg.shortName})
+              Berkas Daftar Ulang ({unitCfg.shortName})
             </h3>
             <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs text-[#4E5651]">
               {docsList.map((doc) => (

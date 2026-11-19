@@ -8,7 +8,6 @@ import {
   FileCheck2,
   RefreshCw,
   Search,
-  UserCheck,
   XCircle,
 } from 'lucide-react';
 import type { FormSchemaConfig, RegistrationRecord } from '../types/spmb.ts';
@@ -93,7 +92,7 @@ export const LookupReceiptView: React.FC<LookupReceiptViewProps> = ({
     const cleanQuery = rawQuery.trim().replace(/\s+/g, ' ');
     if (cleanQuery.length < 3) {
       setErrorMsg(
-        'Harap masukkan minimal 3 karakter (Nama Lengkap Anak, Nomor Pendaftaran, atau NIK).'
+        'Masukkan minimal 3 karakter (Nama Anak, No. Pendaftaran, atau NIK).'
       );
       return;
     }
@@ -129,7 +128,7 @@ export const LookupReceiptView: React.FC<LookupReceiptViewProps> = ({
       if (list.length === 0) {
         setFoundRecords([]);
         setErrorMsg(
-          'Data pendaftar tidak ditemukan. Periksa kembali Nama Lengkap Anak, Nomor Pendaftaran (SPMB-2026-...), atau NIK.'
+          'Data pendaftar tidak ditemukan. Periksa kembali Nama Anak, No. Pendaftaran, atau NIK.'
         );
         return;
       }
@@ -137,7 +136,7 @@ export const LookupReceiptView: React.FC<LookupReceiptViewProps> = ({
       setFoundRecords(list);
       if (isRefresh) {
         setRefreshedNotice(
-          `Status terbaru diperbarui (${new Date().toLocaleTimeString('id-ID', {
+          `Status diperbarui (${new Date().toLocaleTimeString('id-ID', {
             hour: '2-digit',
             minute: '2-digit',
           })} WIB).`
@@ -161,20 +160,13 @@ export const LookupReceiptView: React.FC<LookupReceiptViewProps> = ({
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      <div className="bg-white border border-[#E2E5E2] rounded-2xl p-5 sm:p-8 space-y-5 sm:space-y-6">
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2 text-xs font-medium text-[#14532D]">
-            <UserCheck className="w-3.5 h-3.5" />
-            <span>Layanan Pendaftar &amp; Orang Tua / Wali</span>
-          </div>
+      <div className="bg-white border border-[#E2E5E2] rounded-2xl p-5 sm:p-8 space-y-5">
+        <div className="space-y-1">
           <h1 className="font-display text-xl sm:text-2xl font-bold text-[#111815]">
-            Cek Status Pendaftaran &amp; Bukti PDF
+            Cek Status Pendaftaran
           </h1>
-          <p className="text-sm text-[#4E5651] leading-relaxed">
-            Pantau progres <strong>verifikasi berkas</strong>, <strong>hasil seleksi panitia</strong>,
-            serta unduh bukti pendaftaran resmi dengan memasukkan{' '}
-            <strong>Nama Lengkap Anak</strong>, <strong>Nomor Pendaftaran</strong>, atau{' '}
-            <strong>NIK Siswa</strong>.
+          <p className="text-sm text-[#4E5651]">
+            Pantau verifikasi, hasil seleksi, dan unduh bukti PDF.
           </p>
         </div>
 
@@ -184,7 +176,7 @@ export const LookupReceiptView: React.FC<LookupReceiptViewProps> = ({
               htmlFor="cek-status-input"
               className="block text-xs font-semibold text-[#111815] mb-1.5"
             >
-              Nama Lengkap Anak / Nomor Pendaftaran / NIK Siswa
+              Nama Anak / No. Pendaftaran / NIK
             </label>
             <input
               id="cek-status-input"
@@ -221,7 +213,7 @@ export const LookupReceiptView: React.FC<LookupReceiptViewProps> = ({
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-[#14532D] hover:bg-[#114626] rounded-lg transition-colors disabled:opacity-60"
             >
               <Search className="w-4 h-4" />
-              <span>{isSearching ? 'Memeriksa Status...' : 'Cek Status Pendaftaran'}</span>
+              <span>{isSearching ? 'Memeriksa...' : 'Cek Status'}</span>
             </button>
 
             {foundRecords.length > 0 && lastSearchedQuery && (
@@ -232,7 +224,7 @@ export const LookupReceiptView: React.FC<LookupReceiptViewProps> = ({
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-[#14532D] bg-[#F2F4F2] hover:bg-[#E7EAE7] rounded-lg transition-colors disabled:opacity-60"
               >
                 <RefreshCw className={`w-4 h-4 ${isSearching ? 'animate-spin' : ''}`} />
-                <span>Perbarui Status</span>
+                <span>Perbarui</span>
               </button>
             )}
           </div>
