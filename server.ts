@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type {
   FormSchemaConfig,
+  ProfileGalleryConfig,
   RegistrationInput,
   RegistrationRecord,
   SheetsPublicConfig,
@@ -17,12 +18,14 @@ import {
   computeUnitStats,
   createPrimarySheetsConfig,
   DEFAULT_FORM_CONFIG,
+  DEFAULT_PROFILE_GALLERY_CONFIG,
   extractSpreadsheetIdShared,
   findRegistrationsByName,
   generateRegistrationNumber,
   INSTITUTION_NAME,
   mergeRegistrationLists,
   normalizeFormSchemaConfig,
+  normalizeProfileGalleryConfig,
   normalizeRegistrationInput,
   normalizeRegistrationRecord,
   normalizeSheetsConfig,
@@ -49,12 +52,14 @@ interface DatabaseState {
   registrations: RegistrationRecord[];
   sheetsConfig: SheetsPublicConfig;
   formConfig: FormSchemaConfig;
+  profileGallery: ProfileGalleryConfig;
 }
 
 const DEFAULT_STATE: DatabaseState = {
   registrations: [],
   sheetsConfig: createPrimarySheetsConfig(),
   formConfig: structuredClone(DEFAULT_FORM_CONFIG),
+  profileGallery: structuredClone(DEFAULT_PROFILE_GALLERY_CONFIG),
 };
 
 function applyEnvFallbackToSheetsConfig(cfg: SheetsPublicConfig): SheetsPublicConfig {
@@ -107,6 +112,9 @@ function readDb(): DatabaseState {
       formConfig: parsed.formConfig
         ? normalizeFormSchemaConfig(parsed.formConfig)
         : structuredClone(DEFAULT_FORM_CONFIG),
+      profileGallery: parsed.profileGallery
+        ? normalizeProfileGalleryConfig(parsed.profileGallery)
+        : structuredClone(DEFAULT_PROFILE_GALLERY_CONFIG),
     };
   } catch {
     const fallback = structuredClone(DEFAULT_STATE);
@@ -142,6 +150,7 @@ function broadcastPublicUpdate(reason: string): void {
     reason,
     stats: computeUnitStats(db.registrations, db.formConfig),
     formConfig: db.formConfig,
+    profileGallery: db.profileGallery,
     sheetsConfig: sanitizePublicSheetsConfig(db.sheetsConfig),
     timestamp: new Date().toISOString(),
   });
@@ -190,7 +199,7 @@ function buildAppsScriptSummaryRows(db: DatabaseState, onlyUnit?: UnitId): strin
   if (onlyUnit) {
     const s = stats.byUnit[onlyUnit];
     const rows: string[][] = [
-      [`REKAP SPMB ${UNIT_CONFIGS[onlyUnit].fullName.toUpperCase()}`, INSTITUTION_NAME, `Tahun Ajaran ${ACADEMIC_YEAR}`],
+      [`REKAP SPMB ${UNIT_CONFIGS[onlyUnit].fullName.toUpperCase()}`, INSTITUTION_NAME, `Tahun Pelajaran ${ACADEMIC_YEAR}`],
       ['Terakhir Disinkronkan', formattedTime, `Total Pendaftar Lembaga: ${s.count}`],
       [],
       ['Kode Lembaga', 'Nama Lembaga', 'Pendaftar Sementara', 'Kuota', 'Sisa Kuota', 'Santri Mukim'],
@@ -254,7 +263,7 @@ function buildAppsScriptSummaryRows(db: DatabaseState, onlyUnit?: UnitId): strin
   }
 
   const rows: string[][] = [
-    ['DASHBOARD SPMB REAL-TIME', INSTITUTION_NAME, `Tahun Ajaran ${ACADEMIC_YEAR}`],
+    ['DASHBOARD SPMB REAL-TIME', INSTITUTION_NAME, `Tahun Pelajaran ${ACADEMIC_YEAR}`],
     ['Terakhir Disinkronkan', formattedTime, `Total Pendaftar: ${stats.totalCount}`],
     [],
     ['Kode Lembaga', 'Nama Lembaga', 'Pendaftar Sementara', 'Kuota', 'Sisa Kuota', 'Santri Mukim'],
@@ -271,7 +280,7 @@ function buildAppsScriptSummaryRows(db: DatabaseState, onlyUnit?: UnitId): strin
     }),
     [
       'TOTAL',
-      'Seluruh Lembaga Yayasan PP Muttaqin',
+      `Seluruh Lembaga ${INSTITUTION_NAME}`,
       String(stats.totalCount),
       String(stats.totalQuota),
       String(Math.max(0, stats.totalQuota - stats.totalCount)),
@@ -427,7 +436,7 @@ async function forwardToAppsScript(
 
 async function startServer() {
   const app = express();
-  app.use(express.json({ limit: '5mb' }));
+  app.use(express.json({ limit: '15mb' }));
 
   app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok' });
@@ -447,6 +456,7 @@ async function startServer() {
         reason: 'connected',
         stats: computeUnitStats(db.registrations, db.formConfig),
         formConfig: db.formConfig,
+        profileGallery: db.profileGallery,
         sheetsConfig: sanitizePublicSheetsConfig(db.sheetsConfig),
         timestamp: new Date().toISOString(),
       })}\n\n`
@@ -482,12 +492,13 @@ async function startServer() {
     });
   });
 
-  // Public read-only state (aggregate counts + form schema)
+  // Public read-only state (aggregate counts + form schema + profile slideshow gallery)
   app.get('/api/public/state', (_req, res) => {
     const db = readDb();
     res.json({
       stats: computeUnitStats(db.registrations, db.formConfig),
       formConfig: db.formConfig,
+      profileGallery: db.profileGallery,
       sheetsConfig: sanitizePublicSheetsConfig(db.sheetsConfig),
     });
   });
@@ -554,7 +565,7 @@ async function startServer() {
     }
 
     const now = new Date().toISOString();
-    const noPendaftaran = generateRegistrationNumber(input.unit, db.registrations, 2026);
+    const noPendaftaran = generateRegistrationNumber(input.unit, db.registrations, 2027);
 
     const newRecord: RegistrationRecord = {
       ...input,
@@ -613,7 +624,23 @@ async function startServer() {
       stats: computeUnitStats(db.registrations, db.formConfig),
       sheetsConfig: db.sheetsConfig,
       formConfig: db.formConfig,
+      profileGallery: db.profileGallery,
     });
+  });
+
+  // Admin update institution profile slideshow photos
+  app.put('/api/admin/profile-gallery', (req, res) => {
+    if (!isAdminAuthorized(req)) {
+      res.status(401).json({ error: 'Akses ditolak. Hanya Admin yang dapat mengelola foto profil.' });
+      return;
+    }
+    const { profileGallery } = (req.body || {}) as { profileGallery?: ProfileGalleryConfig };
+    const normalized = normalizeProfileGalleryConfig(profileGallery);
+    const db = readDb();
+    db.profileGallery = normalized;
+    writeDb(db);
+    broadcastPublicUpdate('profile_gallery_updated');
+    res.json({ profileGallery: db.profileGallery });
   });
 
   // Admin update form requirements / custom fields

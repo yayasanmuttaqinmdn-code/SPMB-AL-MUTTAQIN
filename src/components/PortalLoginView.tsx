@@ -1,11 +1,19 @@
-import React, { useState } from 'react';
-import { ArrowRight, BookOpen, FileSearch, Wallet } from 'lucide-react';
-import type { DashboardStats, UnitId } from '../types/spmb.ts';
+import React, { useEffect, useState } from 'react';
+import {
+  ArrowRight,
+  BookOpen,
+  ChevronLeft,
+  ChevronRight,
+  FileSearch,
+  Wallet,
+} from 'lucide-react';
+import type { DashboardStats, ProfileGalleryConfig, UnitId } from '../types/spmb.ts';
 import {
   ACADEMIC_YEAR,
+  DEFAULT_PROFILE_GALLERY_CONFIG,
   FOUNDATION_LOGO_PATH,
+  getNextSlideIndex,
   getUnitLogoPath,
-  INSTITUTION_LOCATION,
   INSTITUTION_NAME,
   UNIT_CONFIGS,
   UNIT_ORDER,
@@ -14,6 +22,7 @@ import heroCampusImg from '../assets/images/hero_pesantren_campus_1794667124955.
 
 interface PortalLoginViewProps {
   stats: DashboardStats;
+  profileGallery?: ProfileGalleryConfig;
   onEnterUnitForm: (unit: UnitId) => void;
   onOpenDashboard: () => void;
   onOpenLookup: () => void;
@@ -22,6 +31,7 @@ interface PortalLoginViewProps {
 
 export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
   stats,
+  profileGallery = DEFAULT_PROFILE_GALLERY_CONFIG,
   onEnterUnitForm,
   onOpenDashboard,
   onOpenLookup,
@@ -29,6 +39,34 @@ export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
 }) => {
   const [heroImgError, setHeroImgError] = useState(false);
   const [crestImgError, setCrestImgError] = useState(false);
+  const [activeSlideIdx, setActiveSlideIdx] = useState(0);
+  const [isCarouselPaused, setIsCarouselPaused] = useState(false);
+  const [brokenSlideIds, setBrokenSlideIds] = useState<Record<string, boolean>>({});
+
+  const validSlides = (profileGallery.slides || []).filter((s) => !brokenSlideIds[s.id]);
+  const hasMultipleSlides = validSlides.length >= 2;
+  const safeSlideIdx =
+    validSlides.length > 0 ? Math.min(activeSlideIdx, validSlides.length - 1) : 0;
+  const activeSlide = validSlides[safeSlideIdx] || null;
+
+  useEffect(() => {
+    setActiveSlideIdx(0);
+  }, [profileGallery.slides.length]);
+
+  useEffect(() => {
+    if (!hasMultipleSlides || !profileGallery.autoPlay || isCarouselPaused) return;
+    const intervalMs = Math.max(2, profileGallery.intervalSeconds || 4) * 1000;
+    const timer = window.setInterval(() => {
+      setActiveSlideIdx((curr) => getNextSlideIndex(curr, validSlides.length, 1));
+    }, intervalMs);
+    return () => window.clearInterval(timer);
+  }, [
+    hasMultipleSlides,
+    profileGallery.autoPlay,
+    profileGallery.intervalSeconds,
+    isCarouselPaused,
+    validSlides.length,
+  ]);
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -100,8 +138,39 @@ export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
           </div>
         </div>
 
-        <div className="order-first lg:order-last lg:col-span-5 relative h-44 sm:h-56 lg:h-auto lg:min-h-[220px] bg-[#E7EAE7]">
-          {!heroImgError ? (
+        <div
+          className="order-first lg:order-last lg:col-span-5 relative h-52 sm:h-64 lg:h-auto lg:min-h-[240px] bg-[#E7EAE7] overflow-hidden group"
+          onMouseEnter={() => setIsCarouselPaused(true)}
+          onMouseLeave={() => setIsCarouselPaused(false)}
+          onFocus={() => setIsCarouselPaused(true)}
+          onBlur={() => setIsCarouselPaused(false)}
+          aria-roledescription={hasMultipleSlides ? 'carousel' : undefined}
+          aria-label={`Galeri profil ${INSTITUTION_NAME}`}
+        >
+          {validSlides.length > 0 ? (
+            validSlides.map((slide, idx) => {
+              const isActive = idx === safeSlideIdx;
+              return (
+                <img
+                  key={slide.id}
+                  src={slide.imageUrl}
+                  alt={slide.caption || `Foto profil ${INSTITUTION_NAME} ${idx + 1}`}
+                  referrerPolicy="no-referrer"
+                  onError={() =>
+                    setBrokenSlideIds((prev) => ({
+                      ...prev,
+                      [slide.id]: true,
+                    }))
+                  }
+                  className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ease-out ${
+                    isActive
+                      ? 'opacity-100 scale-100'
+                      : 'opacity-0 scale-105 pointer-events-none'
+                  }`}
+                />
+              );
+            })
+          ) : !heroImgError ? (
             <img
               src={heroCampusImg}
               alt={`Kampus ${INSTITUTION_NAME}`}
@@ -117,11 +186,73 @@ export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
               </p>
             </div>
           )}
-          <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/75 via-black/35 to-transparent text-white">
-            <p className="text-xs font-medium text-white/90">
-              Total Pendaftar: <strong className="font-mono">{stats.totalCount}</strong> /{' '}
-              {stats.totalQuota} kuota
-            </p>
+
+          {hasMultipleSlides && (
+            <>
+              <button
+                type="button"
+                aria-label="Foto profil sebelumnya"
+                onClick={() =>
+                  setActiveSlideIdx((curr) => getNextSlideIndex(curr, validSlides.length, -1))
+                }
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/45 hover:bg-black/70 text-white flex items-center justify-center transition-opacity sm:opacity-80 sm:group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-white"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                aria-label="Foto profil berikutnya"
+                onClick={() =>
+                  setActiveSlideIdx((curr) => getNextSlideIndex(curr, validSlides.length, 1))
+                }
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/45 hover:bg-black/70 text-white flex items-center justify-center transition-opacity sm:opacity-80 sm:group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-white"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </>
+          )}
+
+          <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/80 via-black/40 to-transparent text-white flex items-end justify-between gap-3">
+            <div className="min-w-0 space-y-0.5">
+              {activeSlide?.unitLabel && (
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-[#FDE68A]">
+                  {activeSlide.unitLabel}
+                </p>
+              )}
+              {activeSlide?.caption && (
+                <p className="text-xs font-semibold text-white line-clamp-1">
+                  {activeSlide.caption}
+                </p>
+              )}
+              <p className="text-xs font-medium text-white/90">
+                Total Pendaftar: <strong className="font-mono">{stats.totalCount}</strong> /{' '}
+                {stats.totalQuota} kuota
+              </p>
+            </div>
+
+            {hasMultipleSlides && (
+              <div
+                role="tablist"
+                aria-label="Pilih slide foto profil"
+                className="flex items-center gap-1.5 shrink-0 pb-0.5"
+              >
+                {validSlides.map((slide, idx) => (
+                  <button
+                    key={slide.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={idx === safeSlideIdx}
+                    aria-label={`Tampilkan foto profil ke-${idx + 1}`}
+                    onClick={() => setActiveSlideIdx(idx)}
+                    className={`h-1.5 rounded-full transition-all ${
+                      idx === safeSlideIdx
+                        ? 'w-5 bg-white'
+                        : 'w-1.5 bg-white/50 hover:bg-white/80'
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </section>

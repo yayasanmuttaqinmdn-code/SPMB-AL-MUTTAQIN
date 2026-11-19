@@ -278,3 +278,15 @@ export interface FeeScheduleGroup {
   items: FeeLineItem[];
 }
 
+export interface ProfilePhotoSlide {
+  id: string;
+  imageUrl: string;
+  caption: string;
+  unitLabel?: string;
+}
+
+export interface ProfileGalleryConfig {
+  slides: ProfilePhotoSlide[];
+  intervalSeconds: number;
+  autoPlay: boolean;
+}

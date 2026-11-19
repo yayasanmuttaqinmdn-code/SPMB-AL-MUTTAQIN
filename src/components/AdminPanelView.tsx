@@ -23,6 +23,7 @@ import type {
   CustomFieldType,
   DashboardStats,
   FormSchemaConfig,
+  ProfileGalleryConfig,
   RegistrationRecord,
   SelectionStatus,
   SheetsPublicConfig,
@@ -44,6 +45,7 @@ import { downloadRegistrationPdf } from '../utils/pdfGenerator.ts';
 import { SheetsSyncView } from './SheetsSyncView.tsx';
 import { CommitteeSelectionView } from './CommitteeSelectionView.tsx';
 import { AdminAnalyticsView } from './AdminAnalyticsView.tsx';
+import { AdminProfilePhotosView } from './AdminProfilePhotosView.tsx';
 
 interface AdminPanelViewProps {
   isAdmin: boolean;
@@ -53,6 +55,8 @@ interface AdminPanelViewProps {
   onAdminLogout: () => void;
   formConfig: FormSchemaConfig;
   onSaveFormConfig: (nextConfig: FormSchemaConfig) => Promise<void>;
+  profileGallery: ProfileGalleryConfig;
+  onSaveProfileGallery: (nextGallery: ProfileGalleryConfig) => Promise<void>;
   registrations: RegistrationRecord[];
   stats: DashboardStats;
   onPreviewRecord: (record: RegistrationRecord) => void;
@@ -113,7 +117,7 @@ interface AdminPanelViewProps {
   }) => Promise<void>;
 }
 
-type AdminSubTab = 'analytics' | 'fields' | 'applicants' | 'selection' | 'sheets';
+type AdminSubTab = 'analytics' | 'fields' | 'photos' | 'applicants' | 'selection' | 'sheets';
 
 export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
   isAdmin,
@@ -123,6 +127,8 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
   onAdminLogout,
   formConfig,
   onSaveFormConfig,
+  profileGallery,
+  onSaveProfileGallery,
   registrations,
   stats,
   onPreviewRecord,
@@ -540,6 +546,19 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
             <button
               type="button"
               role="tab"
+              aria-selected={subTab === 'photos'}
+              onClick={() => setSubTab('photos')}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-md text-center whitespace-nowrap transition-colors tabular-nums ${
+                subTab === 'photos'
+                  ? 'bg-white text-[#14532D] shadow-xs'
+                  : 'text-[#4E5651] hover:text-[#111815]'
+              }`}
+            >
+              Foto Profil{profileGallery.slides.length > 0 ? ` (${profileGallery.slides.length})` : ''}
+            </button>
+            <button
+              type="button"
+              role="tab"
               aria-selected={subTab === 'applicants'}
               onClick={() => setSubTab('applicants')}
               className={`px-3 py-1.5 text-xs font-semibold rounded-md text-center whitespace-nowrap transition-colors tabular-nums ${
@@ -592,6 +611,14 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
       {/* Sub-tab 0: Dashboard Admin (Rekap Terpisah TK, SD, SMP, SMA) */}
       {subTab === 'analytics' && (
         <AdminAnalyticsView registrations={registrations} formConfig={formConfig} />
+      )}
+
+      {/* Sub-tab: Foto Profil Lembaga (Slideshow) */}
+      {subTab === 'photos' && (
+        <AdminProfilePhotosView
+          profileGallery={profileGallery}
+          onSaveProfileGallery={onSaveProfileGallery}
+        />
       )}
 
       {/* Sub-tab 1: Keperluan Data / Form Builder */}

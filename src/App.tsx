@@ -12,6 +12,7 @@ import { ConfirmationModal } from './components/ConfirmationModal.tsx';
 import type {
   DashboardStats,
   FormSchemaConfig,
+  ProfileGalleryConfig,
   RegistrationInput,
   RegistrationRecord,
   SelectionStatus,
@@ -26,8 +27,10 @@ import {
   countConfiguredUnitTargets,
   createPrimarySheetsConfig,
   DEFAULT_FORM_CONFIG,
+  DEFAULT_PROFILE_GALLERY_CONFIG,
   INSTITUTION_NAME,
   normalizeFormSchemaConfig,
+  normalizeProfileGalleryConfig,
   normalizeRegistrationRecord,
   normalizeSheetsConfig,
   registrationToSheetRow,
@@ -114,6 +117,15 @@ export default function App() {
   const [formConfig, setFormConfig] = useState<FormSchemaConfig>(() =>
     structuredClone(DEFAULT_FORM_CONFIG)
   );
+  const [profileGallery, setProfileGallery] = useState<ProfileGalleryConfig>(() => {
+    try {
+      const raw = window.localStorage.getItem('spmb_profile_gallery_v1');
+      if (raw) return normalizeProfileGalleryConfig(JSON.parse(raw));
+    } catch {
+      // Ignore storage errors
+    }
+    return structuredClone(DEFAULT_PROFILE_GALLERY_CONFIG);
+  });
   const [sheetsConfig, setSheetsConfig] = useState<SheetsPublicConfig>(EMPTY_CONFIG);
   const [hasGlobalCloudConfig, setHasGlobalCloudConfig] = useState<boolean>(() =>
     Boolean(getEnvAppsScriptUrl())
@@ -185,6 +197,18 @@ export default function App() {
             const data = await res.json();
             if (data.stats) setPublicStats(data.stats);
             if (data.formConfig) setFormConfig(data.formConfig);
+            if (data.profileGallery) {
+              const normalizedGallery = normalizeProfileGalleryConfig(data.profileGallery);
+              setProfileGallery(normalizedGallery);
+              try {
+                window.localStorage.setItem(
+                  'spmb_profile_gallery_v1',
+                  JSON.stringify(normalizedGallery)
+                );
+              } catch {
+                // Ignore storage quota errors
+              }
+            }
             if (data.sheetsConfig) {
               const incoming = data.sheetsConfig as SheetsPublicConfig;
               setSheetsConfig((prev) => ({
@@ -319,6 +343,10 @@ export default function App() {
       if (data.stats) setPublicStats(data.stats);
       if (data.sheetsConfig) setSheetsConfig(data.sheetsConfig);
       if (data.formConfig) setFormConfig(data.formConfig);
+      if (data.profileGallery) {
+        const normalizedGallery = normalizeProfileGalleryConfig(data.profileGallery);
+        setProfileGallery(normalizedGallery);
+      }
     } else if (res.status === 401) {
       setAdminToken(null);
       setStoredCloudAdminToken(null);
@@ -342,6 +370,18 @@ export default function App() {
             const payload = JSON.parse(event.data);
             if (payload.stats) setPublicStats(payload.stats);
             if (payload.formConfig) setFormConfig(payload.formConfig);
+            if (payload.profileGallery) {
+              const normalizedGallery = normalizeProfileGalleryConfig(payload.profileGallery);
+              setProfileGallery(normalizedGallery);
+              try {
+                window.localStorage.setItem(
+                  'spmb_profile_gallery_v1',
+                  JSON.stringify(normalizedGallery)
+                );
+              } catch {
+                // Ignore storage quota errors
+              }
+            }
             if (payload.sheetsConfig) {
               const incoming = payload.sheetsConfig as SheetsPublicConfig;
               setSheetsConfig((prev) => ({
@@ -748,6 +788,43 @@ export default function App() {
     }
     setFormConfig(data.formConfig);
     if (data.stats) setPublicStats(data.stats);
+  };
+
+  const handleSaveProfileGallery = async (nextGallery: ProfileGalleryConfig) => {
+    if (!adminToken) throw new Error('Sesi Admin telah berakhir.');
+    const normalized = normalizeProfileGalleryConfig(nextGallery);
+
+    if (serverAvailableRef.current === false) {
+      setProfileGallery(normalized);
+      try {
+        window.localStorage.setItem('spmb_profile_gallery_v1', JSON.stringify(normalized));
+      } catch {
+        throw new Error(
+          'Ukuran foto terlalu besar untuk penyimpanan browser lokal. Kurangi jumlah foto atau gunakan link URL.'
+        );
+      }
+      return;
+    }
+
+    const res = await fetch('/api/admin/profile-gallery', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-admin-token': adminToken,
+      },
+      body: JSON.stringify({ profileGallery: normalized }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Gagal menyimpan galeri foto profil lembaga.');
+    }
+    const saved = normalizeProfileGalleryConfig(data.profileGallery);
+    setProfileGallery(saved);
+    try {
+      window.localStorage.setItem('spmb_profile_gallery_v1', JSON.stringify(saved));
+    } catch {
+      // Ignore storage quota errors when server already persisted it
+    }
   };
 
   const handleEnterUnitForm = (unit: UnitId) => {
@@ -2035,6 +2112,7 @@ export default function App() {
         ) : activeTab === 'login' ? (
           <PortalLoginView
             stats={computedOrPublicStats}
+            profileGallery={profileGallery}
             onEnterUnitForm={handleEnterUnitForm}
             onOpenDashboard={() => setActiveTab('dashboard')}
             onOpenLookup={() => setActiveTab('lookup')}
@@ -2119,6 +2197,8 @@ export default function App() {
             onAdminLogout={() => void handleAdminLogout()}
             formConfig={formConfig}
             onSaveFormConfig={handleSaveFormConfig}
+            profileGallery={profileGallery}
+            onSaveProfileGallery={handleSaveProfileGallery}
             registrations={adminRegistrations}
             stats={computedOrPublicStats}
             onPreviewRecord={(record) => {

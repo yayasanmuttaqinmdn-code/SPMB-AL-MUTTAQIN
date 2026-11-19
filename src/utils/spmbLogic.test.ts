@@ -26,20 +26,25 @@ import {
   generateRegistrationNumber,
   getDefaultRequiredFields,
   getFeeItemsForGender,
+  getNextSlideIndex,
   getUnitLogoPath,
   INSTITUTION_NAME,
   OFFICIAL_FEE_PDF_PATH,
   isGenderSplitQuotaUnit,
   isStandardFieldRequired,
   isValidAppsScriptExecUrl,
+  isValidProfilePhotoUrl,
+  MAX_PROFILE_PHOTO_SLIDES,
   mergeRegistrationLists,
   normalizeFormSchemaConfig,
+  normalizeProfileGalleryConfig,
   normalizeRegistrationInput,
   normalizeSheetsConfig,
   parseCloudShareParams,
   parsePulledSpreadsheetData,
   PRIMARY_SPREADSHEET_CONFIG,
   registrationToSheetRow,
+  reorderProfileSlides,
   resolveUnitQuotaTargets,
   resolveUnitRequiredFields,
   resolveUnitWebhookDispatch,
@@ -1200,4 +1205,49 @@ test('computePerUnitRecaps strictly separates TK, SDIT, SMP, and SMA recap metri
   assert.equal(recaps.SMA.verifiedCount, 1);
 });
 
+test('normalizeProfileGalleryConfig validates URLs, clamps interval, caps slides, and supports clean reordering & wrap-around', () => {
+  assert.equal(isValidProfilePhotoUrl('https://example.com/foto.jpg'), true);
+  assert.equal(isValidProfilePhotoUrl('/assets/aistudio/LOGO_YAYASAN_MUTTAQIN_NEW_9100fc21.png'), true);
+  assert.equal(isValidProfilePhotoUrl('data:image/jpeg;base64,/9j/4AAQSkZJRg=='), true);
+  assert.equal(isValidProfilePhotoUrl('javascript:alert(1)'), false);
+  assert.equal(isValidProfilePhotoUrl('/assets/../secret.txt'), false);
+
+  const normalized = normalizeProfileGalleryConfig({
+    intervalSeconds: 99,
+    autoPlay: false,
+    slides: [
+      { id: 's1', imageUrl: 'https://example.com/1.jpg', caption: '  Gedung   Utama  ', unitLabel: 'Yayasan' },
+      { id: 'bad', imageUrl: 'javascript:alert(1)', caption: 'Unsafe' },
+      { id: 's1', imageUrl: '/assets/aistudio/LOGO_YAYASAN_MUTTAQIN_NEW_9100fc21.png', caption: 'SMP', unitLabel: 'SMP' },
+    ],
+  });
+
+  assert.equal(normalized.intervalSeconds, 15);
+  assert.equal(normalized.autoPlay, false);
+  assert.equal(normalized.slides.length, 2);
+  assert.equal(normalized.slides[0].caption, 'Gedung Utama');
+  assert.notEqual(normalized.slides[0].id, normalized.slides[1].id);
+
+  // Enforce max slide cap
+  const tooMany = normalizeProfileGalleryConfig({
+    intervalSeconds: 1,
+    slides: Array.from({ length: MAX_PROFILE_PHOTO_SLIDES + 4 }, (_, i) => ({
+      id: `item-${i}`,
+      imageUrl: `https://example.com/p-${i}.jpg`,
+      caption: `Foto ${i + 1}`,
+    })),
+  });
+  assert.equal(tooMany.intervalSeconds, 2);
+  assert.equal(tooMany.slides.length, MAX_PROFILE_PHOTO_SLIDES);
+
+  // Reordering and carousel wrap-around
+  const reordered = reorderProfileSlides(normalized.slides, 0, 1);
+  assert.equal(reordered[0].unitLabel, 'SMP');
+  assert.equal(reordered[1].unitLabel, 'Yayasan');
+
+  assert.equal(getNextSlideIndex(0, 3, 1), 1);
+  assert.equal(getNextSlideIndex(2, 3, 1), 0);
+  assert.equal(getNextSlideIndex(0, 3, -1), 2);
+  assert.equal(getNextSlideIndex(0, 1, 1), 0);
+});
 

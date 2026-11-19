@@ -4,6 +4,8 @@ import type {
   FeeLineItem,
   FeeScheduleGroup,
   FormSchemaConfig,
+  ProfileGalleryConfig,
+  ProfilePhotoSlide,
   RegistrationInput,
   RegistrationRecord,
   SelectionStatus,
@@ -2529,4 +2531,112 @@ export function formatRupiah(amount: number | null | undefined, withPrefix = tru
   return withPrefix ? `Rp ${formatted}` : formatted;
 }
 
+export const MAX_PROFILE_PHOTO_SLIDES = 10;
+
+export const PROFILE_UNIT_LABELS: readonly string[] = [
+  'Yayasan',
+  'Pondok Pesantren',
+  'RA / TK',
+  'SDIT',
+  'SMP',
+  'SMA',
+];
+
+export const DEFAULT_PROFILE_GALLERY_CONFIG: ProfileGalleryConfig = {
+  slides: [],
+  intervalSeconds: 4,
+  autoPlay: true,
+};
+
+export function isValidProfilePhotoUrl(rawUrl: string): boolean {
+  const clean = (rawUrl || '').trim();
+  if (!clean) return false;
+  if (/^data:image\/(jpeg|jpg|png|webp|gif);base64,[a-zA-Z0-9+/=]+$/i.test(clean)) {
+    return true;
+  }
+  if (clean.startsWith('/assets/')) {
+    return !clean.includes('..') && !/[\s"'<>]/.test(clean);
+  }
+  try {
+    const parsed = new URL(clean);
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:';
+  } catch {
+    return false;
+  }
+}
+
+export function normalizeProfileGalleryConfig(raw: unknown): ProfileGalleryConfig {
+  const obj = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const rawSlides = Array.isArray(obj.slides) ? obj.slides : [];
+  const seenIds = new Set<string>();
+  const slides: ProfilePhotoSlide[] = [];
+
+  for (let i = 0; i < rawSlides.length && slides.length < MAX_PROFILE_PHOTO_SLIDES; i += 1) {
+    const item = rawSlides[i];
+    if (!item || typeof item !== 'object') continue;
+    const rec = item as Record<string, unknown>;
+    const imageUrl = typeof rec.imageUrl === 'string' ? rec.imageUrl.trim() : '';
+    if (!isValidProfilePhotoUrl(imageUrl)) continue;
+
+    let id =
+      typeof rec.id === 'string' && rec.id.trim()
+        ? rec.id.trim().slice(0, 64)
+        : `slide-${slides.length + 1}`;
+    while (seenIds.has(id)) {
+      id = `${id}-${slides.length + 1}`;
+    }
+    seenIds.add(id);
+
+    const caption =
+      typeof rec.caption === 'string' ? rec.caption.trim().replace(/\s+/g, ' ').slice(0, 120) : '';
+    const unitLabel =
+      typeof rec.unitLabel === 'string' ? rec.unitLabel.trim().slice(0, 40) : '';
+
+    slides.push({
+      id,
+      imageUrl,
+      caption,
+      unitLabel: unitLabel || undefined,
+    });
+  }
+
+  const rawInterval = Number(obj.intervalSeconds);
+  const intervalSeconds = Number.isFinite(rawInterval)
+    ? Math.min(15, Math.max(2, Math.round(rawInterval)))
+    : DEFAULT_PROFILE_GALLERY_CONFIG.intervalSeconds;
+
+  const autoPlay =
+    typeof obj.autoPlay === 'boolean' ? obj.autoPlay : DEFAULT_PROFILE_GALLERY_CONFIG.autoPlay;
+
+  return {
+    slides,
+    intervalSeconds,
+    autoPlay,
+  };
+}
+
+export function reorderProfileSlides(
+  slides: ProfilePhotoSlide[],
+  index: number,
+  direction: -1 | 1
+): ProfilePhotoSlide[] {
+  const targetIndex = index + direction;
+  if (index < 0 || index >= slides.length || targetIndex < 0 || targetIndex >= slides.length) {
+    return slides.slice();
+  }
+  const next = slides.slice();
+  const [moved] = next.splice(index, 1);
+  next.splice(targetIndex, 0, moved);
+  return next;
+}
+
+export function getNextSlideIndex(
+  currentIndex: number,
+  totalSlides: number,
+  step: -1 | 1 = 1
+): number {
+  if (totalSlides <= 1) return 0;
+  const safeCurrent = ((currentIndex % totalSlides) + totalSlides) % totalSlides;
+  return (safeCurrent + step + totalSlides) % totalSlides;
+}
 
