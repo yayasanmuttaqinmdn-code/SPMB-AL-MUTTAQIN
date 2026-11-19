@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  ACADEMIC_YEAR,
   buildCloudShareUrl,
   buildRegistrationStatusSummary,
   classifyAlumniOrigin,
@@ -24,7 +25,9 @@ import {
   FOUNDATION_LOGO_PATH,
   generateRegistrationNumber,
   getDefaultRequiredFields,
+  getFeeItemsForGender,
   getUnitLogoPath,
+  INSTITUTION_NAME,
   OFFICIAL_FEE_PDF_PATH,
   isGenderSplitQuotaUnit,
   isStandardFieldRequired,
@@ -138,6 +141,9 @@ test('generateRegistrationNumber increments sequence per unit cleanly', () => {
   assert.equal(generateRegistrationNumber('SDIT', existing, 2026), 'SPMB-2026-SDIT-0001');
   assert.equal(generateRegistrationNumber('SMP', existing, 2026), 'SPMB-2026-SMP-0003');
   assert.equal(generateRegistrationNumber('SMA', existing, 2026), 'SPMB-2026-SMA-0001');
+  assert.equal(generateRegistrationNumber('SMA', []), 'SPMB-2027-SMA-0001');
+  assert.equal(INSTITUTION_NAME, 'YAYASAN PONDOK PESANTREN MUTTAQIN JOSENAN MADIUN');
+  assert.equal(ACADEMIC_YEAR, '2027/2028');
 });
 
 test('computeUnitStats aggregates counts, dynamic quotas, and mukim totals accurately', () => {
@@ -1064,7 +1070,28 @@ test('FEE_SCHEDULES match official BIAYA_PPDB_2027 PDF totals for all 6 categori
     assert.equal(group.totalPutri, expectedTotals[id].putri, `${id} totalPutri mismatch`);
     assert.equal(computed.putra, expectedTotals[id].putra, `${id} line-item Putra sum mismatch`);
     assert.equal(computed.putri, expectedTotals[id].putri, `${id} line-item Putri sum mismatch`);
+
+    const putraItems = getFeeItemsForGender(group.items, 'putra');
+    const putriItems = getFeeItemsForGender(group.items, 'putri');
+    assert.equal(
+      putraItems.reduce((sum, item) => sum + item.amount, 0),
+      expectedTotals[id].putra,
+      `${id} filtered Putra items sum mismatch`
+    );
+    assert.equal(
+      putriItems.reduce((sum, item) => sum + item.amount, 0),
+      expectedTotals[id].putri,
+      `${id} filtered Putri items sum mismatch`
+    );
   }
+
+  // SMA Putra excludes Jilbab and includes Cukur; SMA Putri includes Jilbab and excludes Cukur
+  const smaPutraLabels = getFeeItemsForGender(FEE_SCHEDULES.SMA.items, 'putra').map((i) => i.label);
+  const smaPutriLabels = getFeeItemsForGender(FEE_SCHEDULES.SMA.items, 'putri').map((i) => i.label);
+  assert.equal(smaPutraLabels.includes('Jilbab'), false);
+  assert.equal(smaPutraLabels.includes('Cukur'), true);
+  assert.equal(smaPutriLabels.includes('Jilbab'), true);
+  assert.equal(smaPutriLabels.includes('Cukur'), false);
 
   assert.equal(formatRupiah(3695000), 'Rp 3.695.000');
   assert.equal(formatRupiah(null), '-');

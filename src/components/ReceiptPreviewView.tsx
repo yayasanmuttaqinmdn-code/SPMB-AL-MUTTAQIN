@@ -172,7 +172,7 @@ export const ReceiptPreviewView: React.FC<ReceiptPreviewViewProps> = ({
               )}
               <div>
                 <p className="text-xs font-semibold text-[#926C15]">
-                  {INSTITUTION_NAME} · Tahun Ajaran {ACADEMIC_YEAR}
+                  {INSTITUTION_NAME} · Tahun Pelajaran {ACADEMIC_YEAR}
                 </p>
                 <h1 className="font-display text-xl sm:text-2xl font-bold text-[#111815] mt-0.5">
                   Bukti Pendaftaran — {unitCfg.fullName}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Menu, X } from 'lucide-react';
-import { FOUNDATION_LOGO_PATH } from '../utils/spmbLogic.ts';
+import { FOUNDATION_LOGO_PATH, INSTITUTION_NAME } from '../utils/spmbLogic.ts';
 
 export type ActiveTab = 'login' | 'form' | 'receipt' | 'dashboard' | 'lookup' | 'fees' | 'admin';
 
@@ -28,26 +28,26 @@ export const TopBar: React.FC<TopBarProps> = ({ activeTab, isAdmin, onNavigate }
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-[#E2E5E2]">
-      <div className="max-w-6xl mx-auto px-3.5 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-4 sm:gap-8">
+      <div className="max-w-6xl mx-auto px-3.5 sm:px-6 lg:px-8 min-h-14 sm:min-h-16 py-2 flex items-center justify-between gap-3 sm:gap-6">
         <a
           href="#portal-masuk"
           onClick={(e) => {
             e.preventDefault();
             handleNavClick('login');
           }}
-          className="inline-flex items-center gap-2.5 font-display text-base sm:text-lg font-bold tracking-tight text-[#14532D] whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-[#14532D] rounded-sm"
+          className="inline-flex items-center gap-2.5 min-w-0 font-display text-[11px] sm:text-xs lg:text-[13px] font-bold tracking-tight text-[#14532D] leading-snug focus-visible:outline-2 focus-visible:outline-[#14532D] rounded-sm"
         >
           <img
             src={FOUNDATION_LOGO_PATH}
-            alt="Logo Yayasan PP Muttaqin"
+            alt={`Logo ${INSTITUTION_NAME}`}
             className="w-8 h-8 rounded-md object-contain bg-white border border-[#E2E5E2] p-0.5 shrink-0"
           />
-          <span>PP Muttaqin Josenan</span>
+          <span className="line-clamp-2 sm:line-clamp-1">{INSTITUTION_NAME}</span>
         </a>
 
         <nav
           aria-label="Navigasi utama"
-          className="hidden md:flex items-center gap-7 text-sm font-medium text-[#4E5651]"
+          className="hidden md:flex items-center gap-5 lg:gap-6 text-sm font-medium text-[#4E5651] shrink-0"
         >
           {navItems.map((item) => {
             const isActive =

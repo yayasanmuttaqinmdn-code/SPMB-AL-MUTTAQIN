@@ -2,12 +2,14 @@ import React, { useMemo, useState } from 'react';
 import { ArrowRight, GraduationCap, MapPin, Search, Users } from 'lucide-react';
 import type { FormSchemaConfig, RegistrationRecord, UnitId } from '../types/spmb.ts';
 import {
+  ACADEMIC_YEAR,
   classifyAlumniOrigin,
   computeAdminAnalytics,
   computePerUnitRecaps,
   DEFAULT_FORM_CONFIG,
   FOUNDATION_LOGO_PATH,
   getUnitLogoPath,
+  INSTITUTION_NAME,
   isGenderSplitQuotaUnit,
   UNIT_CONFIGS,
   UNIT_ORDER,
@@ -143,12 +145,15 @@ export const AdminAnalyticsView: React.FC<AdminAnalyticsViewProps> = ({
               src={unitFilter === 'ALL' ? FOUNDATION_LOGO_PATH : getUnitLogoPath(unitFilter)}
               alt={
                 unitFilter === 'ALL'
-                  ? 'Logo Yayasan PP Muttaqin'
+                  ? `Logo ${INSTITUTION_NAME}`
                   : `Logo ${UNIT_CONFIGS[unitFilter].shortName}`
               }
               className="w-11 h-11 rounded-xl object-contain bg-white p-0.5 border border-[#E2E5E2] shrink-0"
             />
             <div>
+              <p className="text-[11px] font-semibold text-[#926C15]">
+                {INSTITUTION_NAME} · Tahun Pelajaran {ACADEMIC_YEAR}
+              </p>
               <h2 className="font-display text-lg sm:text-xl font-bold text-[#111815]">
                 {unitFilter === 'ALL'
                   ? 'Rekap Dashboard Admin'
@@ -546,7 +551,7 @@ export const AdminAnalyticsView: React.FC<AdminAnalyticsViewProps> = ({
               <tfoot>
                 <tr className="bg-[#F6F7F6] border-t border-[#D4D9D4] text-sm font-bold text-[#111815]">
                   <td className="py-3 px-4 sm:px-5 whitespace-nowrap">
-                    Total Keseluruhan Yayasan
+                    Total Keseluruhan (Semua Jenjang)
                   </td>
                   <td className="py-3 px-4 text-right font-mono text-[#14532D] tabular-nums">
                     {fullAnalytics.totalMale}

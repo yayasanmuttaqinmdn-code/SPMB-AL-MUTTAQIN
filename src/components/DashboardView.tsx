@@ -2,6 +2,7 @@ import React from 'react';
 import { RefreshCw } from 'lucide-react';
 import type { DashboardStats, UnitId } from '../types/spmb.ts';
 import {
+  ACADEMIC_YEAR,
   FOUNDATION_LOGO_PATH,
   getUnitLogoPath,
   INSTITUTION_NAME,
@@ -36,7 +37,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           />
           <div className="space-y-0.5">
             <p className="text-xs text-[#4E5651]">
-              {INSTITUTION_NAME}
+              {INSTITUTION_NAME} · Tahun Pelajaran {ACADEMIC_YEAR}
               {lastSyncedAt
                 ? ` · Diperbarui ${new Date(lastSyncedAt).toLocaleTimeString('id-ID')}`
                 : ''}

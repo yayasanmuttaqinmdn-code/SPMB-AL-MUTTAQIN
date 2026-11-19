@@ -144,7 +144,7 @@ function buildSummaryRows(
   }
 
   const rows: string[][] = [
-    ['DASHBOARD SPMB REAL-TIME', INSTITUTION_NAME, `Tahun Ajaran ${ACADEMIC_YEAR}`],
+    ['DASHBOARD SPMB REAL-TIME', INSTITUTION_NAME, `Tahun Pelajaran ${ACADEMIC_YEAR}`],
     ['Terakhir Disinkronkan', formattedTime, `Total Pendaftar: ${stats.totalCount}`],
     [],
     ['Kode Lembaga', 'Nama Lembaga', 'Pendaftar Sementara', 'Kuota', 'Sisa Kuota', 'Santri Mukim'],
@@ -161,7 +161,7 @@ function buildSummaryRows(
     }),
     [
       'TOTAL',
-      'Seluruh Lembaga Yayasan PP Muttaqin',
+      `Seluruh Lembaga ${INSTITUTION_NAME}`,
       String(stats.totalCount),
       String(stats.totalQuota),
       String(Math.max(0, stats.totalQuota - stats.totalCount)),
@@ -396,7 +396,7 @@ function buildSingleUnitSummaryRows(
   });
 
   const rows: string[][] = [
-    [`REKAP SPMB ${UNIT_CONFIGS[unit].fullName.toUpperCase()}`, INSTITUTION_NAME, `Tahun Ajaran ${ACADEMIC_YEAR}`],
+    [`REKAP SPMB ${UNIT_CONFIGS[unit].fullName.toUpperCase()}`, INSTITUTION_NAME, `Tahun Pelajaran ${ACADEMIC_YEAR}`],
     ['Terakhir Disinkronkan', formattedTime, `Total Pendaftar Lembaga: ${s.count}`],
     [],
     ['Kode Lembaga', 'Nama Lembaga', 'Pendaftar Sementara', 'Kuota', 'Sisa Kuota', 'Santri Mukim'],

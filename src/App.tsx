@@ -21,6 +21,7 @@ import type {
   UnitSheetsTarget,
 } from './types/spmb.ts';
 import {
+  ACADEMIC_YEAR,
   computeUnitStats,
   countConfiguredUnitTargets,
   createPrimarySheetsConfig,
@@ -2169,7 +2170,9 @@ export default function App() {
 
       <footer className="border-t border-[#E2E5E2] bg-white py-5 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#4E5651] text-center sm:text-left">
-          <p>© 2026 {INSTITUTION_NAME} · Josenan, Kota Madiun</p>
+          <p>
+            © 2027 {INSTITUTION_NAME} · Tahun Pelajaran {ACADEMIC_YEAR}
+          </p>
           <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
             <button
               type="button"

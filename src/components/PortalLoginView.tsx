@@ -40,7 +40,7 @@ export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
               {!crestImgError ? (
                 <img
                   src={FOUNDATION_LOGO_PATH}
-                  alt="Lambang Yayasan Pondok Pesantren Muttaqin"
+                  alt={`Lambang ${INSTITUTION_NAME}`}
                   onError={() => setCrestImgError(true)}
                   className="w-12 h-12 rounded-xl object-contain bg-white p-0.5 border border-[#E2E5E2] shrink-0"
                 />
@@ -51,7 +51,7 @@ export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
               )}
               <div className="text-xs text-[#4E5651]">
                 <p className="font-semibold text-[#14532D]">{INSTITUTION_NAME}</p>
-                <p>Tahun Ajaran {ACADEMIC_YEAR}</p>
+                <p>Tahun Pelajaran {ACADEMIC_YEAR}</p>
               </div>
             </div>
 
@@ -104,7 +104,7 @@ export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
           {!heroImgError ? (
             <img
               src={heroCampusImg}
-              alt="Kampus Yayasan Pondok Pesantren Muttaqin Josenan Madiun"
+              alt={`Kampus ${INSTITUTION_NAME}`}
               referrerPolicy="no-referrer"
               onError={() => setHeroImgError(true)}
               className="w-full h-full object-cover"

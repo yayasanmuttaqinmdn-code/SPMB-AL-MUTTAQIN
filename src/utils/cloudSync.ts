@@ -182,13 +182,13 @@ function updateSummaryTab(ss, summaryRows, summaryTabName, onlyUnitTab) {
       }
     }
     rowsToWrite = [
-      [onlyUnitTab ? ('REKAP SPMB ' + onlyUnitTab) : 'DASHBOARD SPMB REAL-TIME', 'Yayasan Pondok Pesantren Muttaqin', 'Tahun Ajaran 2026/2027'],
+      [onlyUnitTab ? ('REKAP SPMB ' + onlyUnitTab) : 'DASHBOARD SPMB REAL-TIME', 'YAYASAN PONDOK PESANTREN MUTTAQIN JOSENAN MADIUN', 'Tahun Pelajaran 2027/2028'],
       ['Terakhir Disinkronkan', nowLabel, 'Total Pendaftar: ' + totalCount],
       [],
       ['Kode Lembaga', 'Nama Lembaga', 'Pendaftar Sementara', 'Kuota', 'Sisa Kuota', 'Santri Mukim']
     ].concat(unitLines);
     if (!onlyUnitTab) {
-      rowsToWrite.push(['TOTAL', 'Seluruh Lembaga Yayasan PP Muttaqin', String(totalCount), String(totalQuota), String(Math.max(0, totalQuota - totalCount)), String(totalMukim)]);
+      rowsToWrite.push(['TOTAL', 'Seluruh Lembaga YAYASAN PONDOK PESANTREN MUTTAQIN JOSENAN MADIUN', String(totalCount), String(totalQuota), String(Math.max(0, totalQuota - totalCount)), String(totalMukim)]);
     }
     if (splitLines.length > 0) {
       rowsToWrite.push([]);
@@ -230,7 +230,7 @@ function generateNextRegNumber(ss, tabName, prefix) {
   var sheet = ensureSheetAndHeaders(ss, tabName, DEFAULT_HEADERS, false);
   var lastRow = sheet.getLastRow();
   var maxSeq = 0;
-  var regex = new RegExp('^SPMB-2026-' + prefix + '-(\\\\d+)$');
+  var regex = new RegExp('^SPMB-2027-' + prefix + '-(\\\\d+)$');
   if (lastRow > 1) {
     var codes = sheet.getRange(2, 2, lastRow - 1, 1).getValues();
     for (var i = 0; i < codes.length; i++) {
@@ -243,12 +243,12 @@ function generateNextRegNumber(ss, tabName, prefix) {
   }
   var nextStr = String(maxSeq + 1);
   while (nextStr.length < 4) nextStr = '0' + nextStr;
-  return 'SPMB-2026-' + prefix + '-' + nextStr;
+  return 'SPMB-2027-' + prefix + '-' + nextStr;
 }
 
 function handleReadAction(action, params) {
   if (!action || action === 'ping') {
-    return { ok: true, message: 'SPMB PP Muttaqin Cloud Sync Aktif', timestamp: new Date().toISOString() };
+    return { ok: true, message: 'SPMB YAYASAN PONDOK PESANTREN MUTTAQIN JOSENAN MADIUN Cloud Sync Aktif', timestamp: new Date().toISOString() };
   }
   var ss = getTargetSpreadsheet(params);
   var cfg = readFormConfigObj(ss);
@@ -900,7 +900,7 @@ export async function createRegistrationDirectInAppsScript(
   const draftRecord: RegistrationRecord = normalizeRegistrationRecord({
     ...input,
     id: `reg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    noPendaftaran: generateRegistrationNumber(input.unit, [], 2026),
+    noPendaftaran: generateRegistrationNumber(input.unit, [], 2027),
     createdAt: now,
     updatedAt: now,
     syncState: 'synced',

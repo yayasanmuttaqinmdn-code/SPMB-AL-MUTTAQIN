@@ -183,7 +183,7 @@ export const LookupReceiptView: React.FC<LookupReceiptViewProps> = ({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Contoh: Adam Insan Atama atau SPMB-2026-TK-0001"
+              placeholder="Contoh: Adam Insan Atama atau SPMB-2027-TK-0001"
               className="w-full px-3.5 py-2.5 text-sm bg-[#F9FAF9] border border-[#D4D9D4] rounded-lg focus:outline-none focus:border-[#14532D] focus:bg-white"
             />
           </div>

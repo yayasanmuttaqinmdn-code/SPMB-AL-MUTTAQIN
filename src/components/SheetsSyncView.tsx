@@ -27,6 +27,7 @@ import { preloadGisClient } from '../utils/firebaseAuth.ts';
 import {
   buildCloudShareUrl,
   countConfiguredUnitTargets,
+  INSTITUTION_NAME,
   isValidAppsScriptExecUrl,
   UNIT_CONFIGS,
   UNIT_ORDER,
@@ -714,7 +715,7 @@ export const SheetsSyncView: React.FC<SheetsSyncViewProps> = ({
                   <div className="space-y-0.5 min-w-0">
                     <p className="text-xs font-medium text-[#4E5651]">File Spreadsheet Terhubung</p>
                     <p className="text-sm font-bold text-[#111815] truncate">
-                      {sheetsConfig.spreadsheetTitle || 'Spreadsheet SPMB PP Muttaqin'}
+                      {sheetsConfig.spreadsheetTitle || `Spreadsheet SPMB ${INSTITUTION_NAME}`}
                     </p>
                     <p className="text-xs font-mono text-[#4E5651] truncate">
                       ID: {sheetsConfig.spreadsheetId}

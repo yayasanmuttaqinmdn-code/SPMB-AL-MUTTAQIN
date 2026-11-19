@@ -20,9 +20,9 @@ import type {
   ValidationErrors,
 } from '../types/spmb.ts';
 
-export const ACADEMIC_YEAR = '2026/2027';
+export const ACADEMIC_YEAR = '2027/2028';
 
-export const INSTITUTION_NAME = 'Yayasan Pondok Pesantren Muttaqin';
+export const INSTITUTION_NAME = 'YAYASAN PONDOK PESANTREN MUTTAQIN JOSENAN MADIUN';
 export const INSTITUTION_LOCATION = 'Josenan, Kec. Taman, Kota Madiun, Jawa Timur';
 
 export const UNIT_ORDER: UnitId[] = ['RA_TK', 'SDIT', 'SMP', 'SMA'];
@@ -615,7 +615,7 @@ export function normalizeRegistrationRecord(record: RegistrationRecord): Registr
 export function generateRegistrationNumber(
   unit: UnitId,
   existingRecords: Pick<RegistrationRecord, 'unit' | 'noPendaftaran'>[],
-  year = 2026
+  year = 2027
 ): string {
   const prefix = UNIT_CONFIGS[unit].codePrefix;
   const pattern = new RegExp(`^SPMB-${year}-${prefix}-(\\d+)$`);
@@ -2496,6 +2496,31 @@ export function computeFeeTotals(items: FeeLineItem[]): { putra: number; putri: 
     }),
     { putra: 0, putri: 0 }
   );
+}
+
+export type FeeGenderTab = 'putra' | 'putri';
+
+export interface GenderFeeLineItem {
+  no: number;
+  label: string;
+  amount: number;
+}
+
+export function getFeeItemsForGender(
+  items: FeeLineItem[],
+  gender: FeeGenderTab
+): GenderFeeLineItem[] {
+  return items
+    .map((item) => ({
+      label: item.label,
+      amount: gender === 'putra' ? item.putra : item.putri,
+    }))
+    .filter((entry): entry is { label: string; amount: number } => entry.amount !== null)
+    .map((entry, idx) => ({
+      no: idx + 1,
+      label: entry.label,
+      amount: entry.amount,
+    }));
 }
 
 export function formatRupiah(amount: number | null | undefined, withPrefix = true): string {

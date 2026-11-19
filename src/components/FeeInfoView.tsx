@@ -7,15 +7,15 @@ import {
   FEE_SCHEDULES,
   formatRupiah,
   FOUNDATION_LOGO_PATH,
+  getFeeItemsForGender,
   getUnitLogoPath,
   INSTITUTION_NAME,
+  type FeeGenderTab,
 } from '../utils/spmbLogic.ts';
 
 interface FeeInfoViewProps {
   onRegisterForUnit: (unit: UnitId) => void;
 }
-
-type GenderColumnFilter = 'all' | 'putra' | 'putri';
 
 function getCategoryLogoPath(category: FeeCategoryId): string {
   if (category === 'SMA') return getUnitLogoPath('SMA');
@@ -27,7 +27,7 @@ function getCategoryLogoPath(category: FeeCategoryId): string {
 
 export const FeeInfoView: React.FC<FeeInfoViewProps> = ({ onRegisterForUnit }) => {
   const [activeModalCategory, setActiveModalCategory] = useState<FeeCategoryId | null>(null);
-  const [genderFilter, setGenderFilter] = useState<GenderColumnFilter>('all');
+  const [activeGender, setActiveGender] = useState<FeeGenderTab>('putra');
 
   useEffect(() => {
     if (!activeModalCategory) return;
@@ -40,8 +40,10 @@ export const FeeInfoView: React.FC<FeeInfoViewProps> = ({ onRegisterForUnit }) =
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activeModalCategory]);
 
-  const showPutra = genderFilter === 'all' || genderFilter === 'putra';
-  const showPutri = genderFilter === 'all' || genderFilter === 'putri';
+  const openBreakdown = (category: FeeCategoryId, gender: FeeGenderTab) => {
+    setActiveModalCategory(category);
+    setActiveGender(gender);
+  };
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -50,12 +52,12 @@ export const FeeInfoView: React.FC<FeeInfoViewProps> = ({ onRegisterForUnit }) =
         <div className="flex items-center gap-3.5 sm:gap-4">
           <img
             src={FOUNDATION_LOGO_PATH}
-            alt="Logo Yayasan Pondok Pesantren Muttaqin"
+            alt={`Logo ${INSTITUTION_NAME}`}
             className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl object-contain bg-white border border-[#E2E5E2] p-0.5 shrink-0"
           />
           <div className="space-y-0.5">
             <p className="text-xs font-semibold text-[#926C15]">
-              {INSTITUTION_NAME} · Tahun Ajaran {FEE_ACADEMIC_YEAR}
+              {INSTITUTION_NAME} · Tahun Pelajaran {FEE_ACADEMIC_YEAR}
             </p>
             <h1 className="font-display text-xl sm:text-2xl font-bold text-[#111815]">
               Informasi Biaya Pendaftaran &amp; Pendidikan
@@ -75,17 +77,19 @@ export const FeeInfoView: React.FC<FeeInfoViewProps> = ({ onRegisterForUnit }) =
             const grp = FEE_SCHEDULES[id];
             const isSelected = activeModalCategory === id;
             return (
-              <button
+              <article
                 key={id}
-                type="button"
-                onClick={() => setActiveModalCategory(id)}
-                className={`group text-left p-4 rounded-xl border transition-all flex flex-col justify-between gap-3 focus-visible:outline-2 focus-visible:outline-[#14532D] ${
+                className={`p-4 rounded-xl border transition-all flex flex-col justify-between gap-3 ${
                   isSelected
                     ? 'bg-[#F4F8F5] border-[#14532D] ring-1 ring-[#14532D]'
-                    : 'bg-white border-[#E2E5E2] hover:border-[#14532D]/60'
+                    : 'bg-white border-[#E2E5E2] hover:border-[#14532D]/50'
                 }`}
               >
-                <div className="flex items-start justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => openBreakdown(id, 'putra')}
+                  className="group text-left flex items-center justify-between gap-3 focus-visible:outline-2 focus-visible:outline-[#14532D] rounded-lg"
+                >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <img
                       src={getCategoryLogoPath(id)}
@@ -96,37 +100,51 @@ export const FeeInfoView: React.FC<FeeInfoViewProps> = ({ onRegisterForUnit }) =
                       <h3 className="font-display text-sm sm:text-base font-bold text-[#111815] group-hover:text-[#14532D] transition-colors truncate">
                         {grp.title}
                       </h3>
-                      <p className="text-xs text-[#4E5651]">{grp.items.length} item</p>
                     </div>
                   </div>
                   <span className="text-xs font-semibold text-[#14532D] whitespace-nowrap shrink-0">
-                    Lihat Rincian
+                    Rincian
                   </span>
-                </div>
+                </button>
 
                 <div className="grid grid-cols-2 gap-2 pt-2.5 border-t border-[#EFF1EF] text-xs">
-                  <div>
-                    <p className="text-[#4E5651]">Putra</p>
+                  <button
+                    type="button"
+                    aria-label={`Rincian biaya Putra ${grp.title}`}
+                    onClick={() => openBreakdown(id, 'putra')}
+                    className="text-left p-2.5 rounded-lg bg-[#F9FAF9] border border-[#E2E5E2] hover:border-[#14532D] hover:bg-[#F4F8F5] transition-colors focus-visible:outline-2 focus-visible:outline-[#14532D]"
+                  >
+                    <p className="text-[#4E5651] font-medium">Putra</p>
                     <p className="font-mono font-bold text-[#111815] tabular-nums mt-0.5">
                       {formatRupiah(grp.totalPutra)}
                     </p>
-                  </div>
-                  <div>
-                    <p className="text-[#4E5651]">Putri</p>
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`Rincian biaya Putri ${grp.title}`}
+                    onClick={() => openBreakdown(id, 'putri')}
+                    className="text-left p-2.5 rounded-lg bg-[#F9FAF9] border border-[#E2E5E2] hover:border-[#14532D] hover:bg-[#F4F8F5] transition-colors focus-visible:outline-2 focus-visible:outline-[#14532D]"
+                  >
+                    <p className="text-[#4E5651] font-medium">Putri</p>
                     <p className="font-mono font-bold text-[#14532D] tabular-nums mt-0.5">
                       {formatRupiah(grp.totalPutri)}
                     </p>
-                  </div>
+                  </button>
                 </div>
-              </button>
+              </article>
             );
           })}
         </div>
       </section>
 
-      {/* Instant Breakdown Modal when clicking any cost box */}
+      {/* Instant Breakdown Modal (Putra / Putri terpisah, tanpa tab gabungan) */}
       {activeModalCategory && (() => {
         const modalGroup = FEE_SCHEDULES[activeModalCategory];
+        const genderItems = getFeeItemsForGender(modalGroup.items, activeGender);
+        const activeTotal =
+          activeGender === 'putra' ? modalGroup.totalPutra : modalGroup.totalPutri;
+        const genderLabel = activeGender === 'putra' ? 'Putra' : 'Putri';
+
         return (
           <div
             role="dialog"
@@ -136,7 +154,7 @@ export const FeeInfoView: React.FC<FeeInfoViewProps> = ({ onRegisterForUnit }) =
             onClick={() => setActiveModalCategory(null)}
           >
             <div
-              className="w-full max-w-3xl max-h-[90vh] bg-white border border-[#E2E5E2] rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+              className="w-full max-w-2xl max-h-[90vh] bg-white border border-[#E2E5E2] rounded-2xl shadow-2xl flex flex-col overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Modal Header */}
@@ -150,7 +168,7 @@ export const FeeInfoView: React.FC<FeeInfoViewProps> = ({ onRegisterForUnit }) =
                     />
                     <div className="min-w-0">
                       <p className="text-[11px] font-semibold text-[#926C15]">
-                        Rincian Biaya Pendaftaran {FEE_ACADEMIC_YEAR}
+                        Rincian Biaya {genderLabel} · {FEE_ACADEMIC_YEAR}
                       </p>
                       <h2
                         id="fee-detail-modal-title"
@@ -171,46 +189,38 @@ export const FeeInfoView: React.FC<FeeInfoViewProps> = ({ onRegisterForUnit }) =
                   </button>
                 </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex flex-wrap items-center gap-1">
-                    {FEE_CATEGORY_ORDER.map((catId) => (
-                      <button
-                        key={catId}
-                        type="button"
-                        onClick={() => setActiveModalCategory(catId)}
-                        className={`px-2.5 py-1 text-xs font-semibold rounded-md border transition-colors whitespace-nowrap ${
-                          activeModalCategory === catId
-                            ? 'bg-[#14532D] text-white border-[#14532D]'
-                            : 'bg-white text-[#4E5651] border-[#D4D9D4] hover:border-[#14532D] hover:text-[#111815]'
-                        }`}
-                      >
-                        {FEE_SCHEDULES[catId].shortName}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="inline-flex items-center p-0.5 bg-[#E7EAE7] rounded-lg shrink-0">
-                    {(
-                      [
-                        { id: 'all', label: 'Putra & Putri' },
-                        { id: 'putra', label: 'Putra' },
-                        { id: 'putri', label: 'Putri' },
-                      ] as const
-                    ).map((opt) => (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        onClick={() => setGenderFilter(opt.id)}
-                        className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
-                          genderFilter === opt.id
-                            ? 'bg-white text-[#14532D] font-semibold shadow-sm'
-                            : 'text-[#4E5651] hover:text-[#111815]'
-                        }`}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
+                {/* Putra / Putri Separate Switcher */}
+                <div
+                  role="tablist"
+                  aria-label="Pilih rincian biaya Putra atau Putri"
+                  className="grid grid-cols-2 gap-1 p-1 bg-[#E7EAE7] rounded-lg"
+                >
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={activeGender === 'putra'}
+                    onClick={() => setActiveGender('putra')}
+                    className={`py-2 px-3 text-xs sm:text-sm font-semibold rounded-md transition-colors ${
+                      activeGender === 'putra'
+                        ? 'bg-white text-[#14532D] shadow-xs'
+                        : 'text-[#4E5651] hover:text-[#111815]'
+                    }`}
+                  >
+                    Putra
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={activeGender === 'putri'}
+                    onClick={() => setActiveGender('putri')}
+                    className={`py-2 px-3 text-xs sm:text-sm font-semibold rounded-md transition-colors ${
+                      activeGender === 'putri'
+                        ? 'bg-white text-[#14532D] shadow-xs'
+                        : 'text-[#4E5651] hover:text-[#111815]'
+                    }`}
+                  >
+                    Putri
+                  </button>
                 </div>
               </div>
 
@@ -225,53 +235,35 @@ export const FeeInfoView: React.FC<FeeInfoViewProps> = ({ onRegisterForUnit }) =
                       <th scope="col" className="py-2.5 px-2.5">
                         Keterangan
                       </th>
-                      {showPutra && (
-                        <th scope="col" className="py-2.5 px-3 sm:px-4 text-right whitespace-nowrap">
-                          Putra
-                        </th>
-                      )}
-                      {showPutri && (
-                        <th scope="col" className="py-2.5 pl-3 pr-4 sm:pr-6 text-right whitespace-nowrap">
-                          Putri
-                        </th>
-                      )}
+                      <th
+                        scope="col"
+                        className="py-2.5 pl-3 pr-4 sm:pr-6 text-right whitespace-nowrap"
+                      >
+                        Biaya {genderLabel}
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#EFF1EF] text-xs sm:text-sm">
-                    {modalGroup.items.map((item) => (
+                    {genderItems.map((item) => (
                       <tr key={item.no} className="odd:bg-white even:bg-[#FAFBF9]">
                         <td className="py-2.5 pl-4 sm:pl-6 pr-2 font-mono text-xs text-[#4E5651] tabular-nums">
                           {item.no}
                         </td>
                         <td className="py-2.5 px-2.5 text-[#111815] font-medium">{item.label}</td>
-                        {showPutra && (
-                          <td className="py-2.5 px-3 sm:px-4 text-right font-mono tabular-nums text-[#111815] whitespace-nowrap">
-                            {item.putra !== null ? formatRupiah(item.putra) : '-'}
-                          </td>
-                        )}
-                        {showPutri && (
-                          <td className="py-2.5 pl-3 pr-4 sm:pr-6 text-right font-mono tabular-nums text-[#111815] whitespace-nowrap">
-                            {item.putri !== null ? formatRupiah(item.putri) : '-'}
-                          </td>
-                        )}
+                        <td className="py-2.5 pl-3 pr-4 sm:pr-6 text-right font-mono tabular-nums text-[#111815] whitespace-nowrap">
+                          {formatRupiah(item.amount)}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot className="sticky bottom-0 z-10 bg-[#F2F6F3] shadow-[0_-2px_0_rgba(20,83,45,0.2)]">
                     <tr className="text-xs sm:text-sm font-bold text-[#14532D]">
                       <td colSpan={2} className="py-3 pl-4 sm:pl-6 pr-2">
-                        {modalGroup.totalLabel}
+                        {modalGroup.totalLabel} ({genderLabel.toUpperCase()})
                       </td>
-                      {showPutra && (
-                        <td className="py-3 px-3 sm:px-4 text-right font-mono tabular-nums whitespace-nowrap">
-                          {formatRupiah(modalGroup.totalPutra)}
-                        </td>
-                      )}
-                      {showPutri && (
-                        <td className="py-3 pl-3 pr-4 sm:pr-6 text-right font-mono tabular-nums whitespace-nowrap">
-                          {formatRupiah(modalGroup.totalPutri)}
-                        </td>
-                      )}
+                      <td className="py-3 pl-3 pr-4 sm:pr-6 text-right font-mono tabular-nums whitespace-nowrap">
+                        {formatRupiah(activeTotal)}
+                      </td>
                     </tr>
                   </tfoot>
                 </table>

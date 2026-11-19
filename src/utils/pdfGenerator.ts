@@ -166,14 +166,14 @@ export async function buildRegistrationPdfDocument(
   const headerTextMaxW = (hasPhoto ? photoX - 4 : pageWidth - marginX) - headerTextX;
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11);
+  doc.setFontSize(9.8);
   doc.setTextColor(20, 83, 45);
   const instLines = doc.splitTextToSize(INSTITUTION_NAME.toUpperCase(), headerTextMaxW);
   doc.text(instLines, headerTextX, 11.2);
 
-  const subY = 11.2 + (instLines.length - 1) * 4.2 + 4.4;
+  const subY = 11.2 + (instLines.length - 1) * 4.0 + 4.3;
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.8);
+  doc.setFontSize(8.6);
   doc.setTextColor(146, 108, 21);
   const subLines = doc.splitTextToSize(
     `PANITIA SPMB — ${unitCfg.fullName.toUpperCase()}`,
@@ -185,7 +185,7 @@ export async function buildRegistrationPdfDocument(
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.6);
   doc.setTextColor(78, 86, 81);
-  doc.text(`${INSTITUTION_LOCATION} · Tahun Ajaran ${ACADEMIC_YEAR}`, headerTextX, locY);
+  doc.text(`${INSTITUTION_LOCATION} · Tahun Pelajaran ${ACADEMIC_YEAR}`, headerTextX, locY);
 
   // Double Kop-Surat Divider Line
   const dividerY = Math.max(hasPhoto ? 26.8 : 25.0, locY + 2.8);
@@ -669,7 +669,7 @@ export async function buildRegistrationPdfDocument(
   doc.text(`Madiun, ${printedDate}`, sigRightCenter, y, { align: 'center' });
 
   doc.text('Orang Tua / Wali Calon Murid,', sigLeftCenter, y + 3.4, { align: 'center' });
-  doc.text('Panitia SPMB PP Muttaqin,', sigRightCenter, y + 3.4, { align: 'center' });
+  doc.text('Panitia SPMB,', sigRightCenter, y + 3.4, { align: 'center' });
 
   doc.setDrawColor(130, 138, 132);
   doc.setLineWidth(0.25);
@@ -681,7 +681,9 @@ export async function buildRegistrationPdfDocument(
   doc.setTextColor(17, 24, 21);
   const parentNameLines = doc.splitTextToSize(signerParentName, lineHalf * 2 + 8);
   doc.text(parentNameLines[0] || 'Orang Tua / Wali', sigLeftCenter, y + 18.2, { align: 'center' });
-  doc.text('Sekretariat SPMB Muttaqin', sigRightCenter, y + 18.2, { align: 'center' });
+  doc.setFontSize(6.4);
+  const committeeSignLines = doc.splitTextToSize(INSTITUTION_NAME, lineHalf * 2 + 16);
+  doc.text(committeeSignLines, sigRightCenter, y + 17.8, { align: 'center' });
 
   // Running Footer across all pages
   const totalPages = doc.getNumberOfPages();
@@ -692,7 +694,7 @@ export async function buildRegistrationPdfDocument(
     doc.line(marginX, pageHeight - 10.5, pageWidth - marginX, pageHeight - 10.5);
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7);
+    doc.setFontSize(6.6);
     doc.setTextColor(100, 108, 103);
     doc.text(
       `Dokumen Resmi SPMB ${INSTITUTION_NAME} · No. Pendaftaran: ${regNumberText}`,

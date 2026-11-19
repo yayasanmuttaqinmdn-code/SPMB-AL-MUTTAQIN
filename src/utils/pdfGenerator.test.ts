@@ -88,6 +88,8 @@ test('buildRegistrationPdfDocument omits QR/barcode images completely and fits s
   assert.equal(imageMatchesZero.length, 0, 'PDF must not embed any QR/barcode image');
   assert.equal(docNoImages.getNumberOfPages(), 1, 'Standard complete registration should fit cleanly on 1 A4 page');
   assert.ok(pdfNoImages.includes('SPMB-2026-SMP-0001'));
+  assert.ok(pdfNoImages.includes('YAYASAN PONDOK PESANTREN MUTTAQIN JOSENAN MADIUN'));
+  assert.ok(pdfNoImages.includes('Tahun Pelajaran 2027/2028'));
   assert.ok(pdfNoImages.includes('BUKTI PENDAFTARAN PESERTA DIDIK BARU'));
   assert.ok(pdfNoImages.includes('Jalur Pendaftaran'));
   assert.ok(pdfNoImages.includes('Tahfidz'));
