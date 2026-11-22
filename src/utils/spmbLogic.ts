@@ -2532,6 +2532,7 @@ export function formatRupiah(amount: number | null | undefined, withPrefix = tru
 }
 
 export const MAX_PROFILE_PHOTO_SLIDES = 10;
+export const CLOUD_CONFIG_CELL_MAX_CHARS = 47500;
 
 export const PROFILE_UNIT_LABELS: readonly string[] = [
   'Yayasan',
@@ -2548,8 +2549,31 @@ export const DEFAULT_PROFILE_GALLERY_CONFIG: ProfileGalleryConfig = {
   autoPlay: true,
 };
 
-export function isValidProfilePhotoUrl(rawUrl: string): boolean {
+export function normalizeProfilePhotoUrl(rawUrl: string): string {
   const clean = (rawUrl || '').trim();
+  if (!clean) return '';
+  if (clean.startsWith('data:image/') || clean.startsWith('/assets/')) {
+    return clean;
+  }
+  try {
+    const parsed = new URL(clean);
+    const host = parsed.hostname.toLowerCase();
+    if (host === 'drive.google.com' || host === 'drive.usercontent.google.com') {
+      const fileMatch = /\/file\/d\/([a-zA-Z0-9_-]{10,})/.exec(parsed.pathname);
+      const idParam = parsed.searchParams.get('id');
+      const driveId = fileMatch?.[1] || (idParam && /^[a-zA-Z0-9_-]{10,}$/.test(idParam) ? idParam : '');
+      if (driveId) {
+        return `https://lh3.googleusercontent.com/d/${driveId}=w1200`;
+      }
+    }
+  } catch {
+    // Let validator reject malformed URLs
+  }
+  return clean;
+}
+
+export function isValidProfilePhotoUrl(rawUrl: string): boolean {
+  const clean = normalizeProfilePhotoUrl(rawUrl);
   if (!clean) return false;
   if (/^data:image\/(jpeg|jpg|png|webp|gif);base64,[a-zA-Z0-9+/=]+$/i.test(clean)) {
     return true;
@@ -2575,7 +2599,8 @@ export function normalizeProfileGalleryConfig(raw: unknown): ProfileGalleryConfi
     const item = rawSlides[i];
     if (!item || typeof item !== 'object') continue;
     const rec = item as Record<string, unknown>;
-    const imageUrl = typeof rec.imageUrl === 'string' ? rec.imageUrl.trim() : '';
+    const rawUrl = typeof rec.imageUrl === 'string' ? rec.imageUrl.trim() : '';
+    const imageUrl = normalizeProfilePhotoUrl(rawUrl);
     if (!isValidProfilePhotoUrl(imageUrl)) continue;
 
     let id =
@@ -2613,6 +2638,56 @@ export function normalizeProfileGalleryConfig(raw: unknown): ProfileGalleryConfi
     intervalSeconds,
     autoPlay,
   };
+}
+
+export type CloudFormConfigEnvelope = FormSchemaConfig & {
+  _profileGallery?: ProfileGalleryConfig;
+};
+
+export function packCloudFormConfigEnvelope(
+  formConfig: FormSchemaConfig,
+  profileGallery: ProfileGalleryConfig
+): CloudFormConfigEnvelope {
+  return {
+    ...normalizeFormSchemaConfig(formConfig),
+    _profileGallery: normalizeProfileGalleryConfig(profileGallery),
+  };
+}
+
+export function extractProfileGalleryFromCloudConfig(
+  rawFormConfig: unknown
+): ProfileGalleryConfig | null {
+  let obj: Record<string, unknown> | null = null;
+  if (typeof rawFormConfig === 'string') {
+    const trimmed = rawFormConfig.trim();
+    if (!trimmed.startsWith('{')) return null;
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (parsed && typeof parsed === 'object') {
+        obj = parsed as Record<string, unknown>;
+      }
+    } catch {
+      return null;
+    }
+  } else if (rawFormConfig && typeof rawFormConfig === 'object') {
+    obj = rawFormConfig as Record<string, unknown>;
+  }
+
+  if (!obj || !('_profileGallery' in obj)) {
+    return null;
+  }
+  const rawGallery = obj._profileGallery;
+  if (!rawGallery || typeof rawGallery !== 'object') {
+    return null;
+  }
+  return normalizeProfileGalleryConfig(rawGallery);
+}
+
+export function estimateCloudConfigEnvelopeChars(
+  formConfig: FormSchemaConfig,
+  profileGallery: ProfileGalleryConfig
+): number {
+  return JSON.stringify(packCloudFormConfigEnvelope(formConfig, profileGallery)).length;
 }
 
 export function reorderProfileSlides(
