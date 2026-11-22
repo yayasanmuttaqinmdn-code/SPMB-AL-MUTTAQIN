@@ -16,6 +16,7 @@ import {
   createEmptyRegistrationInput,
   createPrimarySheetsConfig,
   DEFAULT_FORM_CONFIG,
+  enrichUnitCountsFromPulledRows,
   FEE_CATEGORY_ORDER,
   FEE_SCHEDULES,
   computeFeeTotals,
@@ -1249,5 +1250,38 @@ test('normalizeProfileGalleryConfig validates URLs, clamps interval, caps slides
   assert.equal(getNextSlideIndex(2, 3, 1), 0);
   assert.equal(getNextSlideIndex(0, 3, -1), 2);
   assert.equal(getNextSlideIndex(0, 1, 1), 0);
+});
+
+test('enrichUnitCountsFromPulledRows backfills Putra/Putri counts for SMA/SMP when public_state omits gender breakdown', () => {
+  const smaGirl = makeRecord({
+    id: 'sma-p-1',
+    noPendaftaran: 'SPMB-2027-SMA-0001',
+    unit: 'SMA',
+    namaLengkap: 'Aisyah Putri',
+    jenisKelamin: 'Perempuan',
+  });
+  const smaRow = registrationToSheetRow(smaGirl);
+
+  const enriched = enrichUnitCountsFromPulledRows(
+    {
+      SMP: { count: 0, mukimCount: 0, syncedCount: 0 },
+      SMA: { count: 1, mukimCount: 0, syncedCount: 1 },
+    },
+    { SMA: [smaRow] }
+  );
+
+  const cfg = structuredClone(DEFAULT_FORM_CONFIG);
+  cfg.SMP.quotaPutra = 32;
+  cfg.SMP.quotaPutri = 32;
+  cfg.SMA.quotaPutra = 32;
+  cfg.SMA.quotaPutri = 32;
+
+  const stats = computeStatsFromUnitCounts(enriched, cfg);
+  assert.equal(stats.byUnit.SMP.maleCount, 0);
+  assert.equal(stats.byUnit.SMP.femaleCount, 0);
+  assert.equal(stats.byUnit.SMA.maleCount, 0);
+  assert.equal(stats.byUnit.SMA.femaleCount, 1);
+  assert.equal(stats.byUnit.SMA.remainingPutra, 32);
+  assert.equal(stats.byUnit.SMA.remainingPutri, 31);
 });
 

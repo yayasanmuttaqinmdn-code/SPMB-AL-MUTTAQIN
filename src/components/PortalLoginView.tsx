@@ -297,20 +297,20 @@ export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
 
                   {st.quotaPutra !== undefined && st.quotaPutri !== undefined && (
                     <div className="grid grid-cols-2 gap-2 pt-1 text-[11px] font-mono tabular-nums text-[#4E5651]">
-                      <div className="px-2.5 py-1.5 rounded-lg bg-[#F6F7F6] border border-[#E2E5E2] flex items-center justify-between gap-1">
+                      <div className="px-2.5 py-1.5 rounded-lg bg-[#F6F7F6] border border-[#E2E5E2] flex items-center justify-between gap-1 whitespace-nowrap">
                         <span>Putra</span>
                         <strong className="text-[#111815]">
                           {st.maleCount !== undefined
                             ? `${st.maleCount}/${st.quotaPutra}`
-                            : `${st.quotaPutra} kursi`}
+                            : `-/${st.quotaPutra}`}
                         </strong>
                       </div>
-                      <div className="px-2.5 py-1.5 rounded-lg bg-[#F6F7F6] border border-[#E2E5E2] flex items-center justify-between gap-1">
+                      <div className="px-2.5 py-1.5 rounded-lg bg-[#F6F7F6] border border-[#E2E5E2] flex items-center justify-between gap-1 whitespace-nowrap">
                         <span>Putri</span>
                         <strong className="text-[#111815]">
                           {st.femaleCount !== undefined
                             ? `${st.femaleCount}/${st.quotaPutri}`
-                            : `${st.quotaPutri} kursi`}
+                            : `-/${st.quotaPutri}`}
                         </strong>
                       </div>
                     </div>

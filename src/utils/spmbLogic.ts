@@ -2297,6 +2297,70 @@ export function computeStatsFromUnitCounts(
   };
 }
 
+export function enrichUnitCountsFromPulledRows(
+  countsByUnit: Partial<
+    Record<
+      UnitId,
+      {
+        count?: number;
+        mukimCount?: number;
+        syncedCount?: number;
+        maleCount?: number;
+        femaleCount?: number;
+      }
+    >
+  >,
+  rowsByTab?: Partial<Record<UnitId, string[][]>> | Record<string, string[][]> | null
+): Partial<
+  Record<
+    UnitId,
+    {
+      count?: number;
+      mukimCount?: number;
+      syncedCount?: number;
+      maleCount?: number;
+      femaleCount?: number;
+    }
+  >
+> {
+  const next = { ...countsByUnit };
+  if (!rowsByTab || typeof rowsByTab !== 'object') return next;
+
+  for (const unit of UNIT_ORDER) {
+    const tabName = UNIT_CONFIGS[unit].sheetTabName;
+    const rows =
+      (rowsByTab as Record<string, string[][] | undefined>)[tabName] ||
+      (rowsByTab as Record<string, string[][] | undefined>)[unit];
+    if (!Array.isArray(rows)) continue;
+
+    let maleCount = 0;
+    let femaleCount = 0;
+    let validCount = 0;
+
+    for (const row of rows) {
+      if (!Array.isArray(row) || row.length < 5) continue;
+      const parsed = sheetRowToRegistration(row, unit);
+      if (!parsed) continue;
+      validCount += 1;
+      if (parsed.jenisKelamin === 'Perempuan') {
+        femaleCount += 1;
+      } else {
+        maleCount += 1;
+      }
+    }
+
+    const existing = next[unit] || {};
+    next[unit] = {
+      ...existing,
+      count: typeof existing.count === 'number' && existing.count > 0 ? existing.count : validCount,
+      maleCount,
+      femaleCount,
+    };
+  }
+
+  return next;
+}
+
 export function isValidAppsScriptExecUrl(rawUrl: string): boolean {
   const trimmed = (rawUrl || '').trim();
   return /^https:\/\/script\.google\.com\/macros\/s\/[a-zA-Z0-9_-]+\/exec(?:\?.*)?$/i.test(trimmed);

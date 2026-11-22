@@ -11,9 +11,11 @@ import {
   createEmptySheetsConfig,
   createPrimarySheetsConfig,
   DEFAULT_FORM_CONFIG,
+  enrichUnitCountsFromPulledRows,
   extractSpreadsheetIdShared,
   findRegistrationsByName,
   generateRegistrationNumber,
+  isGenderSplitQuotaUnit,
   mergeRegistrationLists,
   normalizeFormSchemaConfig,
   normalizeRegistrationInput,
@@ -709,6 +711,24 @@ export async function fetchDirectPublicState(
       if (resp.countsByUnit?.[unit]) {
         countsByUnit[unit] = resp.countsByUnit[unit];
       }
+      if (
+        isGenderSplitQuotaUnit(unit) &&
+        (countsByUnit[unit]?.count || 0) > 0 &&
+        (typeof countsByUnit[unit]?.maleCount !== 'number' ||
+          typeof countsByUnit[unit]?.femaleCount !== 'number')
+      ) {
+        const pullResp = await callAppsScriptPost(unitTarget.webhookUrl, {
+          action: 'pull',
+          spreadsheetId: unitTarget.spreadsheetId || undefined,
+          unitTab: UNIT_CONFIGS[unit].sheetTabName,
+        }).catch(() => null);
+        if (pullResp?.rowsByTab) {
+          const enriched = enrichUnitCountsFromPulledRows(countsByUnit, pullResp.rowsByTab);
+          if (enriched[unit]) {
+            countsByUnit[unit] = enriched[unit];
+          }
+        }
+      }
       if (resp.formConfig && typeof resp.formConfig === 'object') {
         const parsedCfg = normalizeFormSchemaConfig(resp.formConfig);
         combinedFormConfig[unit] = parsedCfg[unit];
@@ -727,13 +747,36 @@ export async function fetchDirectPublicState(
     action: 'public_state',
     spreadsheetId: target.spreadsheetId || undefined,
   });
+  let effectiveCounts = resp.countsByUnit || {};
+  const missingGenderSplitUnits = UNIT_ORDER.filter(
+    (u) =>
+      isGenderSplitQuotaUnit(u) &&
+      (effectiveCounts[u]?.count || 0) > 0 &&
+      (typeof effectiveCounts[u]?.maleCount !== 'number' ||
+        typeof effectiveCounts[u]?.femaleCount !== 'number')
+  );
+  if (missingGenderSplitUnits.length > 0) {
+    const unitTabParam =
+      missingGenderSplitUnits.length === 1
+        ? UNIT_CONFIGS[missingGenderSplitUnits[0]].sheetTabName
+        : undefined;
+    const pullResp = await callAppsScriptPost(target.webhookUrl, {
+      action: 'pull',
+      spreadsheetId: target.spreadsheetId || undefined,
+      ...(unitTabParam ? { unitTab: unitTabParam } : {}),
+    }).catch(() => null);
+    if (pullResp?.rowsByTab) {
+      effectiveCounts = enrichUnitCountsFromPulledRows(effectiveCounts, pullResp.rowsByTab);
+    }
+  }
+
   const formConfig =
     resp.formConfig && typeof resp.formConfig === 'object'
       ? normalizeFormSchemaConfig(resp.formConfig)
       : typeof resp.formConfig === 'string' && resp.formConfig.trim().startsWith('{')
         ? normalizeFormSchemaConfig(JSON.parse(resp.formConfig) as Partial<FormSchemaConfig>)
         : structuredClone(DEFAULT_FORM_CONFIG);
-  const stats = computeStatsFromUnitCounts(resp.countsByUnit || {}, formConfig, resp.syncedAt);
+  const stats = computeStatsFromUnitCounts(effectiveCounts, formConfig, resp.syncedAt);
   return {
     stats,
     formConfig,

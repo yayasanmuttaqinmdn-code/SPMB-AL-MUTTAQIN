@@ -123,17 +123,21 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   />
                 </div>
                 {st.quotaPutra !== undefined && st.quotaPutri !== undefined && (
-                  <div className="grid grid-cols-2 gap-1.5 pt-0.5 text-[11px] font-mono tabular-nums text-[#4E5651]">
+                  <div className="grid grid-cols-2 gap-1.5 pt-0.5 text-[11px] font-mono tabular-nums text-[#4E5651] whitespace-nowrap">
                     <span>
                       Putra:{' '}
                       <strong className="text-[#111815]">
-                        {st.maleCount !== undefined ? `${st.maleCount}/${st.quotaPutra}` : st.quotaPutra}
+                        {st.maleCount !== undefined
+                          ? `${st.maleCount}/${st.quotaPutra}`
+                          : `-/${st.quotaPutra}`}
                       </strong>
                     </span>
                     <span className="text-right">
                       Putri:{' '}
                       <strong className="text-[#111815]">
-                        {st.femaleCount !== undefined ? `${st.femaleCount}/${st.quotaPutri}` : st.quotaPutri}
+                        {st.femaleCount !== undefined
+                          ? `${st.femaleCount}/${st.quotaPutri}`
+                          : `-/${st.quotaPutri}`}
                       </strong>
                     </span>
                   </div>
