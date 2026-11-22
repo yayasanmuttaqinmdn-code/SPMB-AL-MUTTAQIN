@@ -18,7 +18,9 @@ import {
   UNIT_CONFIGS,
   UNIT_ORDER,
 } from '../utils/spmbLogic.ts';
-import heroCampusImg from '../assets/images/hero_pesantren_campus_1794667124955.jpg';
+
+const PORTAL_HERO_IMAGE_PATH =
+  '/assets/aistudio/WhatsApp_Image_2026-11-22_at_09.42.55_195213e6.jpeg';
 
 interface PortalLoginViewProps {
   stats: DashboardStats;
@@ -172,11 +174,11 @@ export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
             })
           ) : !heroImgError ? (
             <img
-              src={heroCampusImg}
+              src={PORTAL_HERO_IMAGE_PATH}
               alt={`Kampus ${INSTITUTION_NAME}`}
               referrerPolicy="no-referrer"
               onError={() => setHeroImgError(true)}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover object-center"
             />
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center">
